@@ -1,0 +1,26 @@
+[
+  {
+    "paper_id": "FALLBACK-001",
+    "title": "Manganese-substituted lithium iron phosphate cathodes",
+    "abstract": "Reports LiFePO4 cathodes with 0%, 5%, and 10% Mn substitution. Low Mn fractions improved conductivity proxy while preserving stability under the reported threshold.",
+    "authors": ["A. Researcher", "B. Scientist"],
+    "year": 2022,
+    "venue": "Journal of Example Materials",
+    "doi": "10.0000/helix.lfp.mn.low",
+    "url": "https://example.org/helix/lfp-mn-low",
+    "source": "cached_seed",
+    "retrieval_mode": "fallback"
+  },
+  {
+    "paper_id": "FALLBACK-002",
+    "title": "Boundary effects in manganese-doped LiFePO4",
+    "abstract": "Discusses possible instability at high Mn substitution and recommends focused screens between known stable low-Mn and unstable high-Mn regimes.",
+    "authors": ["C. Engineer", "D. Chemist"],
+    "year": 2023,
+    "venue": "Materials Informatics Letters",
+    "doi": "10.0000/helix.lfp.mn.boundary",
+    "url": "https://example.org/helix/lfp-mn-boundary",
+    "source": "cached_seed",
+    "retrieval_mode": "fallback"
+  }
+]

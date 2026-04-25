@@ -1,0 +1,10 @@
+{
+  "schema_id": "materials_screen_v1",
+  "fields": [
+    {"name": "candidate_id", "type": "string"},
+    {"name": "mn_fraction", "type": "number"},
+    {"name": "energy_above_hull", "type": "number"},
+    {"name": "conductivity_proxy", "type": "number"},
+    {"name": "stability_pass", "type": "boolean"}
+  ]
+}

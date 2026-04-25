@@ -1,206 +1,200 @@
 # HelixLabs
 
-**HelixLabs is a cloud-lab operating system for autonomous science.**
+HelixLabs is a cloud-lab operating system for autonomous science. It compiles scientific intent into evidence-aware, non-redundant, scheduled, executable, validated, recoverable experiments, then recommends the next highest-value experiment.
 
-It compiles scientific intent into evidence-aware, non-redundant, scheduled, executable, validated, recoverable experiments, then recommends the next highest-value experiment.
+The MVP implements the canonical materials-discovery demo for cobalt-free cathode optimization with LiFePO4 and Mn doping.
 
----
+## What Is Implemented
 
-## Canonical Demo
+- FastAPI backend with typed Pydantic v2 schemas.
+- JSON persistence under `data/runtime/`.
+- Public Crossref literature lookup with cached fallback seed data.
+- Prior-work matching for already tested 0%, 5%, 10%, and failed 20% Mn conditions.
+- Negative-results memory.
+- Claim graph with weakest high-value claim selection.
+- Experiment IR compiler for 12%, 14%, and 16% Mn.
+- Feasibility validator and novelty/redundancy/value scorer.
+- Structured protocol generator.
+- Dependency-aware simulated lab resource scheduler.
+- Human approval checkpoint.
+- Simulated execution with `property_predictor_timeout`.
+- Failure recovery selecting `retry_failed_condition`.
+- Data stent validation and repair for drifted result columns.
+- Result interpretation with observations, evidence, inference, uncertainty, and limitations separated.
+- Next-experiment planner recommending 14.5%, 15.0%, and 15.5% Mn.
+- Provenance report and experiment memory update.
+- Next.js dashboard with all required panels visible from one screen.
 
-Input:
-
-> Find a low-cost cobalt-free cathode material and test whether Mn doping improves conductivity without hurting stability.
-
-Expected HelixLabs behavior:
-
-1. Parse the goal into structured scientific intent.
-2. Search live literature with cached fallback.
-3. Detect prior low-Mn tests.
-4. Detect a negative high-Mn result.
-5. Build a claim graph.
-6. Compile a narrowed 12%, 14%, 16% Mn experiment.
-7. Validate feasibility, controls, resources, and schema.
-8. Score novelty, redundancy, and experiment value.
-9. Generate a protocol.
-10. Schedule simulated lab resources.
-11. Pause for human approval.
-12. Execute a simulated lab run.
-13. Recover from a simulated timeout.
-14. Detect result schema drift.
-15. Repair output data.
-16. Interpret the result.
-17. Recommend a boundary screen at 14.5%, 15.0%, and 15.5%.
-18. Generate a provenance report.
-19. Update experiment memory.
-
----
-
-## Architecture Summary
+## Repo Layout
 
 ```text
-Input:
-Research goal
-
-Evidence layer:
-Live literature search
-Prior experiment search
-Evidence extraction
-Experiment matching
-Negative-results memory
-
-Reasoning layer:
-Scientific intent parser
-Claim graph builder
-Uncertainty identification
-
-Compilation layer:
-Experiment IR compiler
-Feasibility validator
-Novelty/redundancy/value scorer
-Protocol generator
-
-Operating layer:
-Resource scheduler
-Human approval gate
-Execution adapters
-Simulated/API-backed lab runner
-Failure recovery engine
-
-Data layer:
-Expected schemas
-Data stent
-Repair engine
-Result interpreter
-
-Iteration layer:
-Next experiment planner
-Provenance report
-Experiment memory update
-
-Output:
-A non-redundant, evidence-aware, scheduled, validated, recoverable experiment and the next highest-value experiment to run.
+apps/
+  api/          FastAPI app
+  web/          Next.js dashboard
+packages/      Backend services and typed models
+data/           Seed data, schemas, and runtime JSON persistence
+tests/          Pytest coverage for workflow, fallback, compiler, and data stent
 ```
 
----
+## Environment
 
-## Recommended Stack
+Copy `.env.example` to `.env` if you want to customize settings.
 
-Backend:
-
-- Python 3.11+
-- FastAPI
-- Pydantic v2
-- SQLite or local JSON persistence
-- pytest
-
-Frontend:
-
-- React or Next.js
-- TypeScript
-- Tailwind CSS if available
-
-Data:
-
-- pandas
-- Pydantic validation
-- Optional `frictionless`
-
-Live literature search:
-
-- Semantic Scholar, Crossref, arXiv, or PubMed
-- Cached fallback required
-
----
-
-## Development Setup
-
-These commands are intentionally generic. Codex should update them after implementation.
-
-### Backend
-
-```bash
-cd apps/api
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload
+```powershell
+Copy-Item .env.example .env
 ```
 
-If using Windows PowerShell:
+The demo does not require API keys. Live literature search uses Crossref when available and falls back to `data/sample_literature.json` when offline or forced from the UI.
+
+## Backend Setup
+
+From the repo root:
 
 ```powershell
 cd apps/api
 py -m venv .venv
-.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-uvicorn main:app --reload
+python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-### Frontend
+If you already have the dependencies installed globally, this also works:
 
-```bash
+```powershell
+cd apps/api
+python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Health check:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/api/health
+```
+
+## Frontend Setup
+
+In another terminal:
+
+```powershell
 cd apps/web
 npm install
-npm run dev
+npm run dev -- --hostname 127.0.0.1 --port 3000
 ```
 
----
+Open:
 
-## Environment Variables
+```text
+http://127.0.0.1:3000
+```
 
-Copy `.env.example` to `.env`.
+## Demo Script
 
-Live search should work without keys if using public endpoints, but the demo must fall back to cached data if any live search fails.
+1. Open the dashboard.
+2. Keep the canonical goal:
 
----
+```text
+Find a low-cost cobalt-free cathode material and test whether Mn doping improves conductivity without hurting stability.
+```
 
-## Important Project Files
+3. Click `Run demo` to execute the full lifecycle.
+4. Watch the state machine progress through `MEMORY_UPDATED`.
+5. Confirm the visible outputs:
+   - prior tests at 0%, 5%, and 10% Mn
+   - negative stability result at 20% Mn
+   - narrowed experiment at 12%, 14%, and 16% Mn
+   - human approval gate
+   - simulated timeout and recovery
+   - schema drift detection and repair
+   - interpretation showing 12% and 14% pass, 16% fails
+   - next recommendation at 14.5%, 15.0%, and 15.5% Mn
+   - provenance report
 
-- `AGENTS.md` — instructions for Codex and coding agents
-- `PLAN.md` — full product architecture
-- `API_CONTRACTS.md` — schemas and endpoint contracts
-- `IMPLEMENTATION_CHECKLIST.md` — step-by-step build tracker
-- `CODEX_PROMPTS.md` — recommended prompts for Codex
-- `.env.example` — environment variable template
+You can also step manually with `Create run`, `Advance`, and `Approve`.
 
----
+## API Demo
 
-## Implementation Priorities
+```powershell
+$goal = "Find a low-cost cobalt-free cathode material and test whether Mn doping improves conductivity without hurting stability."
+$created = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/runs -ContentType "application/json" -Body (@{user_goal=$goal} | ConvertTo-Json)
+$runId = $created.run.id
 
-Build in this order:
+for ($i = 0; $i -lt 30; $i++) {
+  $run = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/runs/$runId"
+  if ($run.run.state -eq "MEMORY_UPDATED") { break }
+  if ($run.run.state -eq "AWAITING_HUMAN_APPROVAL") {
+    Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/runs/$runId/approve" -ContentType "application/json" -Body (@{approved=$true; approved_by="demo_user"; notes="Approved narrowed screen."} | ConvertTo-Json) | Out-Null
+  } else {
+    Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/runs/$runId/advance" | Out-Null
+  }
+}
 
-1. Core models and state machine.
-2. Canonical demo state advancement.
-3. Literature search with fallback.
-4. Prior-work and negative-results matching.
-5. Experiment IR compilation.
-6. Feasibility and value scoring.
-7. Protocol generation.
-8. Scheduling.
-9. Approval gate.
-10. Simulated execution.
-11. Failure recovery.
-12. Data stent validation and repair.
-13. Result interpretation.
-14. Next experiment planning.
-15. Provenance report.
-16. Frontend dashboard polish.
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/runs/$runId" | ConvertTo-Json -Depth 8
+```
 
----
+## Tests and Validation
 
-## Validation Checklist
+Commands run during implementation:
 
-Before demo:
+```powershell
+pytest
+cd apps/web
+npm run typecheck
+npm run build
+npm audit
+```
 
-- Backend starts.
-- Frontend starts.
-- Canonical demo works end-to-end.
-- Live search failure triggers fallback.
-- Prior work is detected.
-- Negative result is detected.
-- Experiment IR narrows to 12%, 14%, 16%.
-- Simulated failure occurs and is recovered.
-- Schema drift is detected and repaired.
-- Next experiment is 14.5%, 15.0%, 15.5%.
-- Provenance report is generated.
+Observed results:
+
+- `pytest`: 4 passed.
+- `npm run typecheck`: passed.
+- `npm run build`: passed with Next.js 16.2.4.
+- `npm audit`: 0 vulnerabilities after pinning Next.js 16.2.4 and overriding PostCSS to 8.5.10.
+- Local backend smoke: `GET /api/health` returned `status: ok`.
+- Local frontend smoke: `GET http://127.0.0.1:3000` returned HTTP 200.
+- End-to-end API smoke reached `MEMORY_UPDATED` with 23 provenance events.
+
+## Main Endpoints
+
+```text
+POST /api/runs
+GET  /api/runs/{run_id}
+POST /api/runs/{run_id}/advance
+POST /api/runs/{run_id}/approve
+GET  /api/runs/{run_id}/report
+```
+
+The detailed stage endpoints from `API_CONTRACTS.md` are also implemented:
+
+```text
+POST /api/runs/{run_id}/parse-goal
+POST /api/runs/{run_id}/search-literature
+POST /api/runs/{run_id}/match-prior-work
+POST /api/runs/{run_id}/check-negative-results
+POST /api/runs/{run_id}/build-claim-graph
+POST /api/runs/{run_id}/compile-ir
+POST /api/runs/{run_id}/validate-feasibility
+POST /api/runs/{run_id}/score-value
+POST /api/runs/{run_id}/generate-protocol
+POST /api/runs/{run_id}/schedule
+POST /api/runs/{run_id}/execute
+POST /api/runs/{run_id}/recover
+POST /api/runs/{run_id}/validate-results
+POST /api/runs/{run_id}/interpret
+POST /api/runs/{run_id}/recommend-next
+POST /api/runs/{run_id}/update-memory
+```
+
+## Known Limitations
+
+- Literature evidence extraction is deterministic for the canonical demo, with Crossref metadata used as live context rather than full paper parsing.
+- Persistence is local JSON, not SQLite, so it is suitable for the demo but not concurrent production workloads.
+- The lab runner is simulated and intentionally uses fixed result data to keep the demo reproducible.
+- Scientific claims are demo-grade and should not be treated as real materials guidance.
+
+## Next Improvements
+
+- Add SQLite migrations for durable multi-user storage.
+- Add Semantic Scholar alongside Crossref and persist source-level retrieval diagnostics.
+- Expand evidence extraction with DOI-aware deduplication and richer condition parsing.
+- Add Playwright screenshot smoke tests for the dashboard.
+- Add export formats for protocol payloads and provenance reports.

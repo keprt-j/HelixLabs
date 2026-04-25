@@ -1,0 +1,14 @@
+[
+  {
+    "negative_result_id": "NR-021",
+    "experiment": "LiFePO4 Mn doping",
+    "failed_condition": "20% Mn",
+    "failure_type": "stability_threshold_failed",
+    "observed_result": {
+      "energy_above_hull": 0.071,
+      "stability_pass": false
+    },
+    "recommendation": "Avoid testing above 18% Mn unless mapping the failure boundary.",
+    "source": "internal_run_R-021"
+  }
+]

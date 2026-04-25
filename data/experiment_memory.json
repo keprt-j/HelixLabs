@@ -1,0 +1,24 @@
+[
+  {
+    "run_id": "RUN-001",
+    "experiment": "LiFePO4 Mn boundary screen",
+    "tested_values": [
+      0.12,
+      0.14,
+      0.16
+    ],
+    "result": "12% and 14% stable; 16% failed stability.",
+    "next_experiment": "14.5%, 15.0%, 15.5% Mn boundary screen"
+  },
+  {
+    "run_id": "RUN-002",
+    "experiment": "LiFePO4 Mn boundary screen",
+    "tested_values": [
+      0.12,
+      0.14,
+      0.16
+    ],
+    "result": "12% and 14% stable; 16% failed stability.",
+    "next_experiment": "14.5%, 15.0%, 15.5% Mn boundary screen"
+  }
+]

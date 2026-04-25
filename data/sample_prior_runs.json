@@ -1,0 +1,18 @@
+[
+  {
+    "run_id": "R-017",
+    "experiment": "LiFePO4 Mn doping",
+    "tested_values": [0.0, 0.05, 0.1],
+    "metrics": ["energy_above_hull", "conductivity_proxy", "stability_pass"],
+    "reported_result": "0%, 5%, and 10% Mn were stable; 10% improved conductivity proxy.",
+    "evidence_strength": 0.86
+  },
+  {
+    "run_id": "R-021",
+    "experiment": "LiFePO4 Mn doping",
+    "tested_values": [0.2],
+    "metrics": ["energy_above_hull", "conductivity_proxy", "stability_pass"],
+    "reported_result": "20% Mn failed the stability threshold.",
+    "evidence_strength": 0.93
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "resource_id": "synth_01",
+    "type": "simulated_synthesis_station",
+    "available_at": "09:00",
+    "capabilities": ["prepare_batch", "simulate_synthesis"],
+    "status": "available"
+  },
+  {
+    "resource_id": "validator_01",
+    "type": "structure_validator",
+    "available_at": "09:00",
+    "capabilities": ["validate_structure"],
+    "status": "available"
+  },
+  {
+    "resource_id": "predictor_01",
+    "type": "property_predictor",
+    "available_at": "09:00",
+    "capabilities": ["predict_stability", "predict_conductivity"],
+    "status": "available"
+  },
+  {
+    "resource_id": "data_validator_01",
+    "type": "data_validation_engine",
+    "available_at": "09:00",
+    "capabilities": ["validate_schema", "repair_schema"],
+    "status": "available"
+  }
+]
