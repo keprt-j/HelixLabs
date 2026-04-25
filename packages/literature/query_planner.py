@@ -1,23 +1,26 @@
-from packages.models import LiteratureQueryPlan
+from packages.models import LiteratureQueryPlan, ScientificIntent
 
 
-def build_query_plan() -> LiteratureQueryPlan:
+def build_query_plan(intent: ScientificIntent | None = None) -> LiteratureQueryPlan:
+    base_material = intent.base_material if intent else "LiFePO4"
+    intervention = intent.intervention if intent else "Mn doping"
+    material_synonym = (intent.synonyms.get(base_material, ["lithium iron phosphate"])[0] if intent else "lithium iron phosphate")
+    intervention_synonym = (intent.synonyms.get(intervention, ["manganese substitution"])[0] if intent else "manganese substitution")
     return LiteratureQueryPlan(
         exact_queries=[
-            "\"LiFePO4\" \"Mn doping\" conductivity stability",
-            "\"lithium iron phosphate\" manganese substitution cathode",
+            f"\"{base_material}\" \"{intervention}\" conductivity stability",
+            f"\"{material_synonym}\" {intervention_synonym} cathode",
         ],
         broad_queries=[
-            "manganese doped lithium iron phosphate cathode conductivity",
-            "LiFePO4 dopant screen structural stability",
+            f"{intervention_synonym} {material_synonym} cathode conductivity",
+            f"{base_material} dopant screen structural stability",
         ],
         negative_result_queries=[
-            "LiFePO4 Mn doping instability",
-            "manganese substituted LiFePO4 failed stability",
+            f"{base_material} {intervention} instability",
+            f"{intervention_synonym} {base_material} failed stability",
         ],
         protocol_queries=[
-            "LiFePO4 manganese doping synthesis protocol",
-            "lithium iron phosphate dopant screening method",
+            f"{base_material} manganese doping synthesis protocol",
+            f"{material_synonym} dopant screening method",
         ],
     )
-

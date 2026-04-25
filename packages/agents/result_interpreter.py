@@ -1,8 +1,31 @@
-from packages.models import RepairedResult, ResultInterpretation
+from typing import Any
+
+from packages.models import RepairedResult, ResearchPlan, ResultInterpretation
 
 
-def interpret_results(results: list[RepairedResult]) -> ResultInterpretation:
-    stable_by_fraction = {round(item.mn_fraction, 3): item.stability_pass for item in results}
+def interpret_results(results: list[RepairedResult | dict[str, Any]], plan: ResearchPlan | None = None) -> ResultInterpretation:
+    if plan is not None:
+        variable_name = plan.variable_name
+        stable_by_condition = {
+            row.get(variable_name): row.get("stability_pass")
+            for row in results
+            if isinstance(row, dict)
+        }
+        return ResultInterpretation(
+            observed_results=plan.interpretation.observed_results,
+            prior_evidence=[
+                f"{plan.already_tested_label} had already been tested.",
+                f"{plan.failed_condition_label} previously failed the preservation criterion.",
+            ],
+            inference=plan.interpretation.inference,
+            uncertainty=plan.interpretation.uncertainty,
+            limitations=[
+                *plan.interpretation.limitations,
+                f"Repaired result stability map: {stable_by_condition}.",
+            ],
+        )
+    typed_results = [item for item in results if isinstance(item, RepairedResult)]
+    stable_by_fraction = {round(item.mn_fraction, 3): item.stability_pass for item in typed_results}
     return ResultInterpretation(
         observed_results=[
             "12% Mn passed stability threshold and improved conductivity proxy.",
@@ -21,4 +44,3 @@ def interpret_results(results: list[RepairedResult]) -> ResultInterpretation:
             f"Repaired result stability map: {stable_by_fraction}.",
         ],
     )
-

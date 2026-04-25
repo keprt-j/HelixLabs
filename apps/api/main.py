@@ -40,10 +40,6 @@ class ApprovalRequest(BaseModel):
     notes: str = "Approved narrowed screen after prior-work check."
 
 
-class SearchRequest(BaseModel):
-    force_fallback: bool = False
-
-
 @app.exception_handler(WorkflowError)
 async def workflow_exception_handler(_request: Request, exc: WorkflowError) -> JSONResponse:
     status_code = 409 if exc.code in {"INVALID_STATE_TRANSITION", "APPROVAL_REQUIRED"} else 400
@@ -88,8 +84,8 @@ def parse_goal(run_id: str) -> dict[str, Any]:
 
 
 @app.post("/api/runs/{run_id}/search-literature")
-def search_literature(run_id: str, request: SearchRequest | None = None) -> dict[str, Any]:
-    return workflow.search_literature(run_id, force_fallback=bool(request and request.force_fallback))
+def search_literature(run_id: str) -> dict[str, Any]:
+    return workflow.search_literature(run_id)
 
 
 @app.post("/api/runs/{run_id}/match-prior-work")
@@ -170,4 +166,3 @@ def update_memory(run_id: str) -> dict[str, Any]:
 @app.get("/api/runs/{run_id}/report")
 def get_report(run_id: str) -> dict[str, Any]:
     return workflow.get_report(run_id)
-

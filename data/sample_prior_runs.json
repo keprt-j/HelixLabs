@@ -14,5 +14,37 @@
     "metrics": ["energy_above_hull", "conductivity_proxy", "stability_pass"],
     "reported_result": "20% Mn failed the stability threshold.",
     "evidence_strength": 0.93
+  },
+  {
+    "run_id": "PV-011",
+    "experiment": "FAPbI3 perovskite Br/I ratio tuning",
+    "tested_values": [0.0, 0.05, 0.1],
+    "metrics": ["phase_stability_score", "efficiency_proxy", "stability_pass"],
+    "reported_result": "0%, 5%, and 10% Br retained phase stability; 10% improved efficiency proxy.",
+    "evidence_strength": 0.84
+  },
+  {
+    "run_id": "PV-019",
+    "experiment": "FAPbI3 perovskite Br/I ratio tuning",
+    "tested_values": [0.25],
+    "metrics": ["phase_stability_score", "efficiency_proxy", "stability_pass"],
+    "reported_result": "25% Br failed the phase-stability threshold.",
+    "evidence_strength": 0.91
+  },
+  {
+    "run_id": "ENZ-007",
+    "experiment": "candidate_enzyme_E1 buffer pH adjustment",
+    "tested_values": [6.0, 7.0, 8.0],
+    "metrics": ["fold_stability_score", "activity_proxy", "stability_pass"],
+    "reported_result": "pH 6.0, 7.0, and 8.0 retained fold stability; pH 8.0 improved activity proxy.",
+    "evidence_strength": 0.82
+  },
+  {
+    "run_id": "ENZ-014",
+    "experiment": "candidate_enzyme_E1 buffer pH adjustment",
+    "tested_values": [10.0],
+    "metrics": ["fold_stability_score", "activity_proxy", "stability_pass"],
+    "reported_result": "pH 10.0 failed the fold-stability threshold.",
+    "evidence_strength": 0.9
   }
 ]

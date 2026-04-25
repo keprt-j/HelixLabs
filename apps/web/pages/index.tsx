@@ -12,12 +12,11 @@ import {
   FlaskConical,
   GitBranch,
   Play,
-  RefreshCcw,
   Search,
   ShieldCheck,
   Wrench
 } from "lucide-react";
-import { advanceRun, approveRun, createRun, forceFallbackSearch, getRun } from "../lib/api";
+import { advanceRun, approveRun, createRun, getRun } from "../lib/api";
 import { RunPayload, RunState, stateSequence } from "../lib/types";
 
 const canonicalGoal =
@@ -39,6 +38,8 @@ export default function Home() {
   const artifacts = payload?.artifacts ?? {};
   const currentIndex = payload ? stateSequence.indexOf(payload.run.state) : -1;
   const progressPercent = payload ? Math.round((currentIndex / (stateSequence.length - 1)) * 100) : 0;
+  const variableName = artifacts.experiment_ir?.variables ? Object.keys(artifacts.experiment_ir.variables)[0] : "screen values";
+  const variableValues = variableName && artifacts.experiment_ir?.variables ? artifacts.experiment_ir.variables[variableName] : [];
 
   const nextAction = useMemo(() => {
     if (!payload) return "Create run";
@@ -127,14 +128,12 @@ export default function Home() {
               <Play size={18} />
               Run demo
             </button>
-            <button
-              onClick={() => payload && runAction(async () => forceFallbackSearch(payload.run.id))}
-              disabled={busy || !payload || payload.run.state !== "GOAL_PARSED"}
-              title="Force cached literature fallback after goal parsing"
-            >
-              <RefreshCcw size={18} />
-              Fallback search
-            </button>
+          </div>
+          <div className="examples">
+            <span>Try:</span>
+            <button onClick={() => setGoal(canonicalGoal)} disabled={busy}>Cathode</button>
+            <button onClick={() => setGoal("Optimize a perovskite solar absorber and test whether bromide iodide ratio tuning improves efficiency without hurting phase stability.")} disabled={busy}>Perovskite</button>
+            <button onClick={() => setGoal("Find the best enzyme buffer pH and test whether mildly alkaline conditions improve activity without hurting fold stability.")} disabled={busy}>Enzyme pH</button>
           </div>
           {error && <div className="error"><AlertTriangle size={16} />{error}</div>}
         </section>
@@ -172,7 +171,7 @@ export default function Home() {
 
           <Panel title="Experiment IR" icon={<FlaskConical size={18} />} ready={Boolean(artifacts.experiment_ir)}>
             <Metric label="Material" value={artifacts.experiment_ir?.material ?? "pending"} />
-            <Metric label="Mn fractions" value={(artifacts.experiment_ir?.variables?.mn_fraction ?? []).join(", ") || "pending"} />
+            <Metric label={variableName} value={(variableValues ?? []).join(", ") || "pending"} />
             <List items={artifacts.experiment_ir?.controls ?? []} />
           </Panel>
 
@@ -276,25 +275,18 @@ function List({ items }: { items: string[] }) {
 
 function ResultTable({ rows }: { rows: Array<Record<string, any>> }) {
   if (!rows.length) return null;
+  const columns = Object.keys(rows[0]);
   return (
     <table>
       <thead>
         <tr>
-          <th>Candidate</th>
-          <th>Mn</th>
-          <th>Hull</th>
-          <th>Conductivity</th>
-          <th>Stable</th>
+          {columns.map((column) => <th key={column}>{column}</th>)}
         </tr>
       </thead>
       <tbody>
-        {rows.map((row) => (
-          <tr key={row.candidate_id}>
-            <td>{row.candidate_id}</td>
-            <td>{row.mn_fraction}</td>
-            <td>{row.energy_above_hull}</td>
-            <td>{row.conductivity_proxy}</td>
-            <td>{String(row.stability_pass)}</td>
+        {rows.map((row, index) => (
+          <tr key={row.candidate_id ?? index}>
+            {columns.map((column) => <td key={column}>{String(row[column])}</td>)}
           </tr>
         ))}
       </tbody>

@@ -1,37 +1,23 @@
-from packages.models import ScientificIntent
+from packages.models import ResearchPlan, ScientificIntent
 
 
-def parse_scientific_intent(user_goal: str) -> ScientificIntent:
+def intent_from_research_plan(plan: ResearchPlan) -> ScientificIntent:
+    synonyms = {item.term: item.synonyms for item in plan.synonyms}
     return ScientificIntent(
-        domain="materials_discovery",
-        objective="optimize_cobalt_free_cathode",
-        base_material="LiFePO4",
-        intervention="Mn doping",
-        target_property="conductivity_proxy",
-        must_preserve="thermodynamic_stability",
+        domain=plan.domain,
+        objective=plan.objective,
+        base_material=plan.system,
+        intervention=plan.intervention,
+        target_property=plan.target_property,
+        must_preserve=plan.preserve_property,
         constraints={
-            "exclude_elements": ["Co", "Ni"],
-            "prefer_low_cost": True,
+            "variable_name": plan.variable_name,
+            "variable_label": plan.variable_label,
+            "variable_unit": plan.variable_unit,
             "max_runtime_hours": 4,
         },
-        success_metrics=[
-            "energy_above_hull",
-            "conductivity_proxy",
-            "stability_pass",
-        ],
-        primary_question="Does moderate Mn doping improve conductivity while preserving stability?",
-        search_entities=[
-            "LiFePO4",
-            "lithium iron phosphate",
-            "Mn doping",
-            "manganese substitution",
-            "cathode",
-            "conductivity",
-            "stability",
-        ],
-        synonyms={
-            "Mn doping": ["manganese substitution", "Mn-substituted", "manganese-doped"],
-            "LiFePO4": ["lithium iron phosphate", "LFP"],
-        },
+        success_metrics=plan.success_metrics,
+        primary_question=plan.primary_question,
+        search_entities=plan.search_entities,
+        synonyms=synonyms,
     )
-

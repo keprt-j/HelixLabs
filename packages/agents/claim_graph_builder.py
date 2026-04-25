@@ -1,29 +1,12 @@
-from packages.models import Claim, ClaimGraph
+from packages.models import Claim, ClaimGraph, ResearchPlan
 
 
-def build_claim_graph() -> ClaimGraph:
+def build_claim_graph(plan: ResearchPlan) -> ClaimGraph:
     return ClaimGraph(
-        main_hypothesis="Moderate Mn doping improves LiFePO4 conductivity while preserving stability.",
+        main_hypothesis=plan.hypothesis,
         claims=[
-            Claim(
-                id="C1",
-                claim="LiFePO4 is a feasible cobalt-free cathode candidate.",
-                status="supported",
-                evidence=["materials_database", "literature_search"],
-            ),
-            Claim(
-                id="C2",
-                claim="Low Mn doping improves conductivity.",
-                status="partially_supported",
-                evidence=["paper_match_001", "internal_run_R-017"],
-            ),
-            Claim(
-                id="C3",
-                claim="Mn substitution remains stable above 10% and below 20%.",
-                status="uncertain",
-                evidence=["internal_run_R-017", "negative_result_R-021"],
-            ),
+            Claim.model_validate(claim.model_dump())
+            for claim in plan.claims
         ],
         weakest_high_value_claim="C3",
     )
-

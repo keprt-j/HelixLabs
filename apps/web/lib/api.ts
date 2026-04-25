@@ -37,10 +37,3 @@ export async function approveRun(runId: string): Promise<void> {
     body: JSON.stringify({approved: true, approved_by: "demo_user", notes: "Approved narrowed screen after prior-work check."})
   });
 }
-
-export async function forceFallbackSearch(runId: string): Promise<void> {
-  await request(`/api/runs/${runId}/search-literature`, {
-    method: "POST",
-    body: JSON.stringify({force_fallback: true})
-  });
-}

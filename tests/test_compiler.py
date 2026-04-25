@@ -1,14 +1,17 @@
 from pathlib import Path
 
+from conftest import fake_research_plan
 from packages.compiler.compiler import compile_experiment_ir
 from packages.compiler.feasibility_validator import validate_feasibility
 from packages.compiler.value_scorer import score_experiment_value
+from packages.workflow import CANONICAL_GOAL
 
 
 def test_compiler_validator_and_scorer_match_demo_contract() -> None:
     root = Path(__file__).resolve().parents[1]
-    ir = compile_experiment_ir()
-    report = validate_feasibility(root, ir)
+    plan = fake_research_plan(CANONICAL_GOAL)
+    ir = compile_experiment_ir(plan)
+    report = validate_feasibility(root, ir, plan=plan)
     score = score_experiment_value()
 
     assert ir.variables["mn_fraction"] == [0.12, 0.14, 0.16]

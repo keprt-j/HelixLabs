@@ -10,5 +10,29 @@
     },
     "recommendation": "Avoid testing above 18% Mn unless mapping the failure boundary.",
     "source": "internal_run_R-021"
+  },
+  {
+    "negative_result_id": "NR-PV-019",
+    "experiment": "FAPbI3 perovskite Br/I ratio tuning",
+    "failed_condition": "25% Br",
+    "failure_type": "phase_stability_threshold_failed",
+    "observed_result": {
+      "phase_stability_score": 0.49,
+      "stability_pass": false
+    },
+    "recommendation": "Avoid testing above 22% Br unless mapping the phase-stability boundary.",
+    "source": "internal_run_PV-019"
+  },
+  {
+    "negative_result_id": "NR-ENZ-014",
+    "experiment": "candidate_enzyme_E1 buffer pH adjustment",
+    "failed_condition": "pH 10.0",
+    "failure_type": "fold_stability_threshold_failed",
+    "observed_result": {
+      "fold_stability_score": 0.41,
+      "stability_pass": false
+    },
+    "recommendation": "Avoid pH 10.0 unless mapping alkaline denaturation.",
+    "source": "internal_run_ENZ-014"
   }
 ]

@@ -1,12 +1,12 @@
-from packages.models import CandidateNextExperiment, NextExperimentRecommendation
+from packages.models import CandidateNextExperiment, NextExperimentRecommendation, ResearchPlan
 
 
-def plan_next_experiment() -> NextExperimentRecommendation:
+def plan_next_experiment(plan: ResearchPlan) -> NextExperimentRecommendation:
     return NextExperimentRecommendation(
         candidate_next_experiments=[
             CandidateNextExperiment(
-                name="Boundary screen between 14% and 16% Mn",
-                conditions=[0.145, 0.150, 0.155],
+                name=f"Boundary screen for {plan.variable_label}",
+                conditions=plan.next_values,
                 expected_information_gain=0.91,
                 novelty=0.83,
                 feasibility=0.88,
@@ -16,8 +16,8 @@ def plan_next_experiment() -> NextExperimentRecommendation:
                 score=0.82,
             ),
             CandidateNextExperiment(
-                name="Repeat 12-16% screen",
-                conditions=[0.12, 0.14, 0.16],
+                name=f"Repeat current {plan.variable_label} screen",
+                conditions=plan.candidate_values,
                 expected_information_gain=0.35,
                 novelty=0.21,
                 feasibility=0.95,
@@ -27,7 +27,6 @@ def plan_next_experiment() -> NextExperimentRecommendation:
                 score=0.19,
             ),
         ],
-        selected_next_experiment="Boundary screen between 14% and 16% Mn",
-        rationale="14% passed and 16% failed, so the highest-value next experiment is to locate the stability boundary.",
+        selected_next_experiment=f"Boundary screen for {plan.variable_label}",
+        rationale=plan.interpretation.uncertainty,
     )
-

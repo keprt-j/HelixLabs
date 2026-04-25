@@ -1,10 +1,10 @@
-from packages.models import Protocol, ProtocolStep
+from packages.models import Protocol, ProtocolStep, ResearchPlan
 
 
-def generate_protocol() -> Protocol:
+def generate_protocol(plan: ResearchPlan) -> Protocol:
     return Protocol(
         protocol_id="P-001",
-        name="Narrow Mn-doping boundary screen for LiFePO4",
+        name=plan.protocol_name,
         steps=[
             ProtocolStep(
                 step_id="S1",
@@ -43,4 +43,3 @@ def generate_protocol() -> Protocol:
             ),
         ],
     )
-

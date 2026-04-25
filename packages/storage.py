@@ -32,7 +32,7 @@ class JsonStore:
         run_id = f"RUN-{len(runs) + 1:03d}"
         run = ExperimentRun(
             id=run_id,
-            title="Cobalt-free cathode Mn-doping boundary screen",
+            title="HelixLabs research run",
             user_goal=user_goal,
         )
         runs[run_id] = run.model_dump(mode="json")
@@ -65,4 +65,3 @@ class JsonStore:
 
 def load_json(root: Path, relative_path: str) -> Any:
     return json.loads((root / relative_path).read_text(encoding="utf-8"))
-

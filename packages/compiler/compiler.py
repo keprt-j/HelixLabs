@@ -1,25 +1,26 @@
-from packages.models import ExperimentIR
+from packages.models import ExperimentIR, ResearchPlan
 
 
-def compile_experiment_ir() -> ExperimentIR:
+def compile_experiment_ir(plan: ResearchPlan) -> ExperimentIR:
     return ExperimentIR(
         experiment_id="EXP-001",
-        domain="materials_discovery",
-        hypothesis="Moderate Mn doping improves conductivity while preserving stability.",
+        domain=plan.domain,
+        hypothesis=plan.hypothesis,
         target_claim="C3",
-        experiment_type="dopant_boundary_screen",
-        material="LiFePO4",
-        variables={"mn_fraction": [0.12, 0.14, 0.16]},
-        controls=["undoped_LiFePO4", "10_percent_Mn_prior_baseline"],
-        success_metrics=["energy_above_hull", "conductivity_proxy", "stability_pass"],
+        experiment_type="evidence_aware_boundary_screen",
+        material=plan.system,
+        variables={plan.variable_name: plan.candidate_values},
+        controls=plan.controls,
+        success_metrics=plan.success_metrics,
         constraints={
             "stability_threshold_ev": 0.05,
-            "exclude_elements": ["Co", "Ni"],
+            "variable_label": plan.variable_label,
+            "variable_unit": plan.variable_unit,
             "max_runtime_hours": 4,
         },
         evidence_context={
-            "already_tested": [0.0, 0.05, 0.10, 0.20],
-            "unresolved_gap": "12-16% Mn stability boundary",
+            "already_tested": [*plan.prior_tested_values, *plan.known_failed_values],
+            "unresolved_gap": plan.gap,
         },
         required_resources=[
             "simulated_synthesis_station",
@@ -29,4 +30,3 @@ def compile_experiment_ir() -> ExperimentIR:
         ],
         expected_output_schema="materials_screen_v1",
     )
-

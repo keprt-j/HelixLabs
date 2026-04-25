@@ -2,17 +2,18 @@
 
 HelixLabs is a cloud-lab operating system for autonomous science. It compiles scientific intent into evidence-aware, non-redundant, scheduled, executable, validated, recoverable experiments, then recommends the next highest-value experiment.
 
-The MVP implements the canonical materials-discovery demo for cobalt-free cathode optimization with LiFePO4 and Mn doping.
+The MVP implements a broad LLM-planned experiment workflow, with the canonical materials-discovery demo for cobalt-free cathode optimization as the primary judge path.
 
 ## What Is Implemented
 
 - FastAPI backend with typed Pydantic v2 schemas.
 - JSON persistence under `data/runtime/`.
-- Public Crossref literature lookup with cached fallback seed data.
-- Prior-work matching for already tested 0%, 5%, 10%, and failed 20% Mn conditions.
+- OpenAI structured-output research planner for open-ended scientific goals.
+- Public Crossref literature lookup with no deterministic runtime fallback.
+- Prior-work matching for already-tested conditions and failed high-risk conditions.
 - Negative-results memory.
 - Claim graph with weakest high-value claim selection.
-- Experiment IR compiler for 12%, 14%, and 16% Mn.
+- Experiment IR compiler driven by the generated research plan.
 - Feasibility validator and novelty/redundancy/value scorer.
 - Structured protocol generator.
 - Dependency-aware simulated lab resource scheduler.
@@ -33,18 +34,25 @@ apps/
   web/          Next.js dashboard
 packages/      Backend services and typed models
 data/           Seed data, schemas, and runtime JSON persistence
-tests/          Pytest coverage for workflow, fallback, compiler, and data stent
+tests/          Pytest coverage for workflow, literature, compiler, and data stent
 ```
 
 ## Environment
 
-Copy `.env.example` to `.env` if you want to customize settings.
+Copy `.env.example` to `.env` and set your OpenAI API key.
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-The demo does not require API keys. Live literature search uses Crossref when available and falls back to `data/sample_literature.json` when offline or forced from the UI.
+Required:
+
+```text
+OPENAI_API_KEY=sk-...
+HELIXLABS_OPENAI_MODEL=gpt-4.1-mini
+```
+
+Live literature search uses Crossref. There is no deterministic runtime fallback for the LLM planner or literature search; tests mock those network boundaries.
 
 ## Backend Setup
 
@@ -111,6 +119,32 @@ Find a low-cost cobalt-free cathode material and test whether Mn doping improves
 
 You can also step manually with `Create run`, `Advance`, and `Approve`.
 
+## Additional Test Prompts
+
+The dashboard includes quick-fill buttons for example goals, and you can enter other scientific questions. The LLM planner converts the goal into the structured research plan used by the rest of the workflow.
+
+```text
+Optimize a perovskite solar absorber and test whether bromide iodide ratio tuning improves efficiency without hurting phase stability.
+```
+
+```text
+Find the best enzyme buffer pH and test whether mildly alkaline conditions improve activity without hurting fold stability.
+```
+
+Other examples to try:
+
+```text
+Screen sodium-ion cathode dopants and test whether magnesium substitution improves cycling stability without lowering capacity.
+```
+
+```text
+Optimize a biodegradable polymer blend and test whether adding citrate plasticizer improves toughness without reducing degradation rate.
+```
+
+```text
+Find a low-cost electrocatalyst formulation and test whether nickel doping improves oxygen evolution activity without hurting durability.
+```
+
 ## API Demo
 
 ```powershell
@@ -145,13 +179,14 @@ npm audit
 
 Observed results:
 
-- `pytest`: 4 passed.
+- `pytest`: 13 passed.
 - `npm run typecheck`: passed.
 - `npm run build`: passed with Next.js 16.2.4.
 - `npm audit`: 0 vulnerabilities after pinning Next.js 16.2.4 and overriding PostCSS to 8.5.10.
 - Local backend smoke: `GET /api/health` returned `status: ok`.
-- Local frontend smoke: `GET http://127.0.0.1:3000` returned HTTP 200.
+- Local frontend smoke returned HTTP 200.
 - End-to-end API smoke reached `MEMORY_UPDATED` with 23 provenance events.
+- Real LLM-backed workflow smoke reached `MEMORY_UPDATED` with Crossref `live` retrieval and canonical candidates `[0.12, 0.14, 0.16]`.
 
 ## Main Endpoints
 
@@ -186,15 +221,15 @@ POST /api/runs/{run_id}/update-memory
 
 ## Known Limitations
 
-- Literature evidence extraction is deterministic for the canonical demo, with Crossref metadata used as live context rather than full paper parsing.
+- The LLM planner creates structured experiment plans, but literature evidence extraction still uses Crossref metadata rather than full-text paper parsing.
 - Persistence is local JSON, not SQLite, so it is suitable for the demo but not concurrent production workloads.
-- The lab runner is simulated and intentionally uses fixed result data to keep the demo reproducible.
+- The lab runner is simulated and uses LLM-planned synthetic result rows to demonstrate execution, failure recovery, schema drift, and interpretation.
 - Scientific claims are demo-grade and should not be treated as real materials guidance.
 
 ## Next Improvements
 
 - Add SQLite migrations for durable multi-user storage.
 - Add Semantic Scholar alongside Crossref and persist source-level retrieval diagnostics.
-- Expand evidence extraction with DOI-aware deduplication and richer condition parsing.
+- Expand evidence extraction with DOI-aware deduplication, abstract parsing, and richer condition extraction.
 - Add Playwright screenshot smoke tests for the dashboard.
 - Add export formats for protocol payloads and provenance reports.

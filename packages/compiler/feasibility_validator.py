@@ -1,28 +1,28 @@
 from pathlib import Path
 
-from packages.models import ExperimentIR, FeasibilityReport, ValidationIssue
+from packages.models import ExperimentIR, FeasibilityReport, ResearchPlan, ValidationIssue
 
 
-def validate_feasibility(root: Path, ir: ExperimentIR) -> FeasibilityReport:
+def validate_feasibility(root: Path, ir: ExperimentIR, plan: ResearchPlan) -> FeasibilityReport:
     schema_path = root / "data" / "expected_schemas" / f"{ir.expected_output_schema}.json"
     issues = [
         ValidationIssue(
             severity="info",
-            issue="0%, 5%, and 10% Mn were already tested.",
+            issue=f"{plan.already_tested_label} were already tested.",
             resolution="Excluded redundant low-fraction conditions.",
         ),
         ValidationIssue(
             severity="warning",
-            issue="20% Mn previously failed stability.",
-            resolution="Avoided 20% and selected 12-16% boundary screen.",
+            issue=f"{plan.failed_condition_label} previously failed the preservation criterion.",
+            resolution=plan.recommendation,
         ),
     ]
-    if not ir.variables.get("mn_fraction"):
+    if not next(iter(ir.variables.values()), []):
         issues.append(
             ValidationIssue(
                 severity="error",
-                issue="No Mn fraction variables were defined.",
-                resolution="Define mn_fraction values before protocol generation.",
+                issue=f"No {plan.variable_label} variables were defined.",
+                resolution="Define screen values before protocol generation.",
             )
         )
     if not ir.controls:
@@ -30,7 +30,7 @@ def validate_feasibility(root: Path, ir: ExperimentIR) -> FeasibilityReport:
             ValidationIssue(
                 severity="error",
                 issue="No controls were specified.",
-                resolution="Add undoped and prior 10% Mn controls.",
+                resolution="Add baseline and prior-reference controls.",
             )
         )
     if not schema_path.exists():
@@ -47,4 +47,3 @@ def validate_feasibility(root: Path, ir: ExperimentIR) -> FeasibilityReport:
         issues=issues,
         approved_for_protocol_generation=approved,
     )
-

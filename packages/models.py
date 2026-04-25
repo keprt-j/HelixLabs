@@ -93,6 +93,69 @@ class ScientificIntent(HelixModel):
     synonyms: dict[str, list[str]]
 
 
+class ResearchClaimSeed(HelixModel):
+    id: str
+    claim: str
+    status: str
+    evidence: list[str]
+
+
+class SimulatedResultSeed(HelixModel):
+    candidate_id: str
+    variable_value: float
+    primary_metric_value: float
+    target_metric_value: float
+    stability_pass: bool
+
+
+class ResearchInterpretationSeed(HelixModel):
+    observed_results: list[str]
+    inference: str
+    uncertainty: str
+    limitations: list[str]
+
+
+class SynonymSet(HelixModel):
+    term: str
+    synonyms: list[str]
+
+
+class ResearchPlan(HelixModel):
+    extraction_mode: str
+    domain: str
+    objective: str
+    system: str
+    intervention: str
+    variable_name: str
+    variable_label: str
+    variable_unit: str
+    target_property: str
+    preserve_property: str
+    success_metrics: list[str]
+    primary_question: str
+    search_entities: list[str]
+    synonyms: list[SynonymSet]
+    hypothesis: str
+    prior_tested_values: list[float]
+    known_failed_values: list[float]
+    candidate_values: list[float]
+    next_values: list[float]
+    controls: list[str]
+    already_tested_label: str
+    failed_condition_label: str
+    gap: str
+    recommendation: str
+    claims: list[ResearchClaimSeed]
+    protocol_name: str
+    candidate_prefix: str
+    drifted_variable_column: str
+    drifted_primary_metric_column: str
+    drifted_target_metric_column: str
+    drifted_pass_column: str
+    simulated_results: list[SimulatedResultSeed]
+    interpretation: ResearchInterpretationSeed
+
+
 class LiteratureQueryPlan(HelixModel):
     exact_queries: list[str]
     broad_queries: list[str]
@@ -372,4 +435,3 @@ class ProvenanceReport(HelixModel):
     title: str
     sections: list[ProvenanceReportSection]
     provenance_events: list[ProvenanceEvent]
-
