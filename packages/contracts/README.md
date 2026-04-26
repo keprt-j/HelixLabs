@@ -3,6 +3,7 @@
 This package hosts shared contracts between frontend and backend.
 
 - `run.schema.json`: canonical JSON Schema for run payloads.
+- `experiment-ir.schema.json`: universal experiment intermediate representation contract.
 
 ## Intent
 

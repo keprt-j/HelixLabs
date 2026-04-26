@@ -40,6 +40,60 @@ class ProvenanceEvent(BaseModel):
     message: str
 
 
+class FactorType(str, Enum):
+    CONTINUOUS = "continuous"
+    CATEGORICAL = "categorical"
+    ORDINAL = "ordinal"
+    BOOLEAN = "boolean"
+
+
+class ResponseObjective(str, Enum):
+    MAXIMIZE = "maximize"
+    MINIMIZE = "minimize"
+    TARGET = "target"
+
+
+class FactorSpec(BaseModel):
+    name: str = Field(min_length=1)
+    type: FactorType
+    units: str | None = None
+    bounds: dict[str, float] | None = None
+    levels: list[str | float | bool] = Field(default_factory=list)
+
+
+class ResponseSpec(BaseModel):
+    name: str = Field(min_length=1)
+    objective: ResponseObjective
+    target_value: float | None = None
+    units: str | None = None
+    valid_range: dict[str, float] | None = None
+
+
+class ConstraintSpec(BaseModel):
+    expression: str = Field(min_length=1)
+    severity: str = "hard"
+
+
+class ProcedureStep(BaseModel):
+    id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    description: str | None = None
+    expected_outputs: list[str] = Field(default_factory=list)
+
+
+class ExperimentIR(BaseModel):
+    version: str = "1.0"
+    domain_hint: str | None = None
+    hypothesis: dict[str, Any]
+    factors: list[FactorSpec]
+    responses: list[ResponseSpec]
+    constraints: list[ConstraintSpec] = Field(default_factory=list)
+    design: dict[str, Any]
+    procedure_steps: list[ProcedureStep]
+    analysis_plan: dict[str, Any] = Field(default_factory=dict)
+    provenance_refs: list[str] = Field(default_factory=list)
+
+
 class IntakePayload(BaseModel):
     parsed_goal: dict[str, Any]
     literature: dict[str, Any]

@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://helixlabs.local/contracts/experiment-ir.schema.json",
+  "title": "HelixLabs Experiment IR",
+  "type": "object",
+  "required": [
+    "version",
+    "hypothesis",
+    "factors",
+    "responses",
+    "design",
+    "procedure_steps"
+  ],
+  "properties": {
+    "version": { "type": "string", "minLength": 1 },
+    "domain_hint": { "type": "string" },
+    "hypothesis": {
+      "type": "object",
+      "required": ["statement"],
+      "properties": {
+        "statement": { "type": "string", "minLength": 3 },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "source_refs": { "type": "array", "items": { "type": "string" }, "default": [] }
+      },
+      "additionalProperties": false
+    },
+    "factors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "type"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "type": { "type": "string", "enum": ["continuous", "categorical", "ordinal", "boolean"] },
+          "units": { "type": "string" },
+          "bounds": {
+            "type": "object",
+            "required": ["min", "max"],
+            "properties": {
+              "min": { "type": "number" },
+              "max": { "type": "number" }
+            },
+            "additionalProperties": false
+          },
+          "levels": {
+            "type": "array",
+            "items": { "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }] }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "responses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "objective"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "objective": { "type": "string", "enum": ["maximize", "minimize", "target"] },
+          "target_value": { "type": "number" },
+          "units": { "type": "string" },
+          "valid_range": {
+            "type": "object",
+            "properties": {
+              "min": { "type": "number" },
+              "max": { "type": "number" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["expression"],
+        "properties": {
+          "expression": { "type": "string", "minLength": 1 },
+          "severity": { "type": "string", "enum": ["hard", "soft"], "default": "hard" }
+        },
+        "additionalProperties": false
+      },
+      "default": []
+    },
+    "design": {
+      "type": "object",
+      "required": ["strategy", "sample_budget", "replicates"],
+      "properties": {
+        "strategy": { "type": "string", "minLength": 1 },
+        "sample_budget": { "type": "integer", "minimum": 1 },
+        "replicates": { "type": "integer", "minimum": 1 },
+        "random_seed": { "type": "integer", "minimum": 0 },
+        "noise_model": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "procedure_steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "description": { "type": "string" },
+          "expected_outputs": { "type": "array", "items": { "type": "string" }, "default": [] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "analysis_plan": {
+      "type": "object",
+      "properties": {
+        "primary_method": { "type": "string" },
+        "secondary_methods": { "type": "array", "items": { "type": "string" }, "default": [] }
+      },
+      "additionalProperties": false,
+      "default": {}
+    },
+    "provenance_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    }
+  },
+  "additionalProperties": false
+}

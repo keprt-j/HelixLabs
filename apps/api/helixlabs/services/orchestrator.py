@@ -209,30 +209,64 @@ class RunOrchestrator:
         payload, events = self._stage_service.stage_execute(run)
         run.pipeline.runtime.execution = payload
         run.artifacts["execution_log"] = payload
+        run.artifacts["normalized_results"] = {
+            "observations": list(payload.get("measurements") or []),
+            "series": list(payload.get("series_for_charts") or []),
+            "events": [{"type": e.event_type, "category": e.category, "message": e.message, "time": e.time} for e in events],
+            "qc": [],
+            "summary_metrics": {},
+            "procedure_trace": self._procedure_trace(run=run, status="executed"),
+        }
         run.provenance.extend(events)
 
     def _apply_recover(self, run: RunRecord) -> None:
         payload, events = self._stage_service.stage_recover(run)
         run.pipeline.runtime.recovery = payload
         run.artifacts["failure_recovery_plan"] = payload
+        norm = run.artifacts.get("normalized_results") or {}
+        norm["recovery"] = payload
+        norm["procedure_trace"] = self._procedure_trace(run=run, status="recovered")
+        run.artifacts["normalized_results"] = norm
         run.provenance.extend(events)
 
     def _apply_validate_results(self, run: RunRecord) -> None:
         payload, events = self._stage_service.stage_validate_results(run)
         run.pipeline.runtime.validation = payload
         run.artifacts["validation_report"] = payload
+        norm = run.artifacts.get("normalized_results") or {}
+        norm["qc"] = [
+            {
+                "status": payload.get("validation_status", "unknown"),
+                "validated_records": payload.get("validated_records", 0),
+                "mapped_columns": payload.get("mapped_columns", {}),
+            }
+        ]
+        norm["procedure_trace"] = self._procedure_trace(run=run, status="validated")
+        run.artifacts["normalized_results"] = norm
         run.provenance.extend(events)
 
     def _apply_interpret(self, run: RunRecord) -> None:
         payload, events = self._stage_service.stage_interpret(run)
         run.pipeline.runtime.results = payload
         run.artifacts["interpretation"] = payload
+        norm = run.artifacts.get("normalized_results") or {}
+        norm["summary_metrics"] = {
+            "best_condition": payload.get("best_condition"),
+            "inference": payload.get("inference"),
+            "uncertainty": payload.get("uncertainty"),
+        }
+        norm["procedure_trace"] = self._procedure_trace(run=run, status="interpreted")
+        run.artifacts["normalized_results"] = norm
         run.provenance.extend(events)
 
     def _apply_recommend_next(self, run: RunRecord) -> None:
         payload, events = self._stage_service.stage_recommend_next(run)
         run.pipeline.outcomes.next_experiment = payload
         run.artifacts["next_experiment_recommendation"] = payload
+        norm = run.artifacts.get("normalized_results") or {}
+        norm["next_experiment"] = payload
+        norm["procedure_trace"] = self._procedure_trace(run=run, status="recommended")
+        run.artifacts["normalized_results"] = norm
         run.provenance.extend(events)
 
     def _apply_update_memory(self, run: RunRecord) -> None:
@@ -241,4 +275,19 @@ class RunOrchestrator:
         report, report_events = self._stage_service.stage_generate_report(run)
         run.pipeline.outcomes.report = report
         run.artifacts["report"] = report
+        norm = run.artifacts.get("normalized_results") or {}
+        norm["report"] = report
+        norm["procedure_trace"] = self._procedure_trace(run=run, status="completed")
+        run.artifacts["normalized_results"] = norm
         run.provenance.extend(events + report_events)
+
+    @staticmethod
+    def _procedure_trace(run: RunRecord, status: str) -> list[dict]:
+        protocol = run.artifacts.get("protocol") or {}
+        steps = list(protocol.get("steps") or [])
+        if not steps:
+            return [{"id": "unknown", "name": "protocol unavailable", "status": status}]
+        out: list[dict] = []
+        for i, s in enumerate(steps):
+            out.append({"id": f"step_{i+1}", "name": str(s), "status": status})
+        return out

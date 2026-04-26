@@ -9,27 +9,21 @@ from helixlabs.domain.models import (
     RuntimePayload,
 )
 from helixlabs.services.literature_synthesizer import LiteratureSynthesizerService
-from helixlabs.services.pipeline_simulation import (
-    build_simulation_config,
-    design_experiment_matrix,
-    execution_payload,
-    feasibility_from_literature_and_design,
-    interpret_from_measurements,
-    literature_fingerprint,
-    protocol_from_design,
-    recommend_next_from_measurements,
-    recovery_payload,
-    report_payload,
-    run_measurements,
-    schedule_from_design,
-    validation_payload,
-    value_scores_from_context,
-)
+from helixlabs.services.plugin_router import PluginRouter
+from helixlabs.services.plugins.base import ExperimentPlugin
+from helixlabs.services.ir_validator import ExperimentIRValidator
 
 
 class StageService:
-    def __init__(self, synthesizer: LiteratureSynthesizerService | None = None) -> None:
+    def __init__(
+        self,
+        synthesizer: LiteratureSynthesizerService | None = None,
+        ir_validator: ExperimentIRValidator | None = None,
+        plugin_router: PluginRouter | None = None,
+    ) -> None:
         self._synthesizer = synthesizer or LiteratureSynthesizerService()
+        self._ir_validator = ir_validator or ExperimentIRValidator()
+        self._plugin_router = plugin_router or PluginRouter()
 
     def build_intake(self, run: RunRecord) -> tuple[IntakePayload, list[ProvenanceEvent]]:
         synthesis = self._synthesizer.synthesize(run.user_goal)
@@ -278,97 +272,82 @@ class StageService:
         return payload, [self._event("DECISION", "Intake", "Weakest claim selected for planning focus")]
 
     def stage_compile_ir(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
-        design, meta = design_experiment_matrix(run)
-        studies = list(run.pipeline.intake.literature.get("studies") or [])
-        fp = meta["fingerprint"]
-        fracs = sorted({float(p["fraction_mol_pct"]) for p in design})
-        temps = sorted({float(p["temperature_c"]) for p in design})
-        cfg = build_simulation_config(run)
+        selected = self._plugin_router.select(run)
+        plugin_payload = selected.plugin.compile_ir(run)
+        validation = self._ir_validator.validate(plugin_payload.get("experiment_ir") or {})
         payload = {
-            "experiment_type": "literature_conditioned_composition_temperature_screen",
-            "variables": {"fraction_mol_pct": fracs, "temperature_c": temps},
-            "design_matrix": design,
+            "experiment_type": f"plugin:{selected.plugin.plugin_id}",
+            "variables": list((validation.get("normalized_ir") or {}).get("factors") or []),
+            "design_matrix": plugin_payload.get("design_matrix", []),
             "target_claim": run.pipeline.intake.claim_graph.get("weakest_claim"),
-            "simulation": cfg,
-            "literature_fingerprint": {
-                "mean_relevance": fp["mean_relevance"],
-                "n_studies": fp["n_studies"],
-                "top_tokens": fp.get("top_tokens", []),
+            "simulation": plugin_payload.get("simulation", {}),
+            "experiment_ir": validation.get("normalized_ir") or plugin_payload.get("experiment_ir") or {},
+            "ir_validation": {
+                "is_valid": validation["is_valid"],
+                "errors": validation["errors"],
+                "warnings": validation["warnings"],
+            },
+            "literature_fingerprint": plugin_payload.get("literature_fingerprint", {}),
+            "plugin": {
+                "selected_plugin": selected.plugin.plugin_id,
+                "selection_confidence": round(selected.confidence, 4),
+                "selection_reason": selected.reason,
             },
         }
-        return payload, [self._event("STATE", "Planning", "Experiment IR compiled from literature-conditioned design grid")]
+        msg = "Experiment IR compiled from literature-conditioned design grid"
+        if not validation["is_valid"]:
+            msg += " (with validation errors)"
+        return payload, [self._event("STATE", "Planning", msg)]
 
     def stage_validate_feasibility(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
         ir = run.artifacts.get("experiment_ir") or {}
-        design = list(ir.get("design_matrix") or [])
-        studies = list(run.pipeline.intake.literature.get("studies") or [])
-        fp = literature_fingerprint(studies, run.user_goal)
-        payload = feasibility_from_literature_and_design(run, design, fp)
-        return payload, [self._event("STATE", "Planning", "Feasibility validated against literature + design grid")]
+        payload = self._plugin_for_run(run).validate_feasibility(run, ir)
+        return payload, [self._event("STATE", "Planning", "Feasibility validated by selected execution plugin")]
 
     def stage_score_value(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
         ir = run.artifacts.get("experiment_ir") or {}
-        design = list(ir.get("design_matrix") or [])
-        studies = list(run.pipeline.intake.literature.get("studies") or [])
-        fp = literature_fingerprint(studies, run.user_goal)
-        prior = run.pipeline.intake.prior_work
-        measurements = run_measurements(run, design, fp) if design else []
-        payload = value_scores_from_context(fp, measurements, dict(prior))
-        return payload, [self._event("STATE", "Planning", "Experiment value scored from simulated design spread")]
+        payload = self._plugin_for_run(run).score_value(run, ir)
+        return payload, [self._event("STATE", "Planning", "Experiment value scored by selected execution plugin")]
 
     def stage_generate_protocol(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
         ir = run.artifacts.get("experiment_ir") or {}
-        design = list(ir.get("design_matrix") or [])
-        payload = protocol_from_design(run, design)
-        return payload, [self._event("STATE", "Planning", "Protocol generated for literature-conditioned grid")]
+        payload = self._plugin_for_run(run).generate_protocol(run, ir)
+        return payload, [self._event("STATE", "Planning", "Protocol generated by selected execution plugin")]
 
     def stage_schedule(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
         ir = run.artifacts.get("experiment_ir") or {}
-        design = list(ir.get("design_matrix") or [])
-        studies = list(run.pipeline.intake.literature.get("studies") or [])
-        fp = literature_fingerprint(studies, run.user_goal)
-        payload = schedule_from_design(run, design, fp)
-        return payload, [self._event("STATE", "Planning", "Resource schedule generated from simulated workload")]
+        payload = self._plugin_for_run(run).schedule(run, ir)
+        return payload, [self._event("STATE", "Planning", "Resource schedule generated by selected execution plugin")]
 
     def stage_execute(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
         ir = run.artifacts.get("experiment_ir") or {}
-        design = list(ir.get("design_matrix") or [])
-        studies = list(run.pipeline.intake.literature.get("studies") or [])
-        fp = literature_fingerprint(studies, run.user_goal)
-        measurements = run_measurements(run, design, fp) if design else []
-        payload = execution_payload(run, design, measurements, fp)
+        payload = self._plugin_for_run(run).execute(run, ir)
         events = [
-            self._event("STATE", "Runtime", "Surrogate measurement campaign executed"),
+            self._event("STATE", "Runtime", "Execution plugin campaign executed"),
         ]
         if payload.get("recovery_hint"):
-            events.append(self._event("ERROR", "Runtime", "Surrogate flagged stability stress on edge compositions"))
+            events.append(self._event("ERROR", "Runtime", "Execution plugin flagged recovery condition"))
         return payload, events
 
     def stage_recover(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
         ex = run.artifacts.get("execution_log") or {}
-        measurements = list(ex.get("measurements") or [])
-        payload = recovery_payload(measurements)
-        return payload, [self._event("FIX", "Runtime", "Recovery policy applied from surrogate flags")]
+        payload = self._plugin_for_run(run).recover(run, ex)
+        return payload, [self._event("FIX", "Runtime", "Recovery policy applied from execution plugin")]
 
     def stage_validate_results(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
         ex = run.artifacts.get("execution_log") or {}
-        measurements = list(ex.get("measurements") or [])
-        payload = validation_payload(measurements)
+        payload = self._plugin_for_run(run).validate_results(run, ex)
         return payload, [self._event("FIX", "Runtime", "Measurement bundle validated")]
 
     def stage_interpret(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
         ex = run.artifacts.get("execution_log") or {}
-        measurements = list(ex.get("measurements") or [])
-        payload = interpret_from_measurements(measurements)
-        return payload, [self._event("STATE", "Runtime", "Results interpreted from simulated measurements")]
+        payload = self._plugin_for_run(run).interpret(run, ex)
+        return payload, [self._event("STATE", "Runtime", "Results interpreted from execution plugin outputs")]
 
     def stage_recommend_next(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
         ex = run.artifacts.get("execution_log") or {}
-        measurements = list(ex.get("measurements") or [])
-        studies = list(run.pipeline.intake.literature.get("studies") or [])
-        fp = literature_fingerprint(studies, run.user_goal)
-        payload = recommend_next_from_measurements(measurements, fp)
-        return payload, [self._event("DECISION", "Outcomes", "Next experiment recommendation generated from surrogate extrema")]
+        payload = self._plugin_for_run(run).recommend_next(run, ex)
+        return payload, [self._event("DECISION", "Outcomes", "Next experiment recommendation generated by execution plugin")]
 
     def stage_update_memory(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
         payload = {
@@ -381,8 +360,9 @@ class StageService:
         ex = run.artifacts.get("execution_log") or {}
         measurements = list(ex.get("measurements") or [])
         interp = run.artifacts.get("interpretation") or {}
-        payload = report_payload(run, measurements, dict(interp))
-        return payload, [self._event("STATE", "Outcomes", "Run report finalized with simulation + literature trace")]
+        payload = self._plugin_for_run(run).report(run, ex, dict(interp))
+        payload["n_measurements"] = payload.get("n_measurements", len(measurements))
+        return payload, [self._event("STATE", "Outcomes", "Run report finalized with plugin execution trace")]
 
     @staticmethod
     def _event(event_type: str, category: str, message: str) -> ProvenanceEvent:
@@ -392,3 +372,12 @@ class StageService:
             category=category,
             message=message,
         )
+
+    def _plugin_for_run(self, run: RunRecord) -> ExperimentPlugin:
+        plugin_meta = (run.artifacts.get("experiment_ir") or {}).get("plugin") or {}
+        plugin_id = plugin_meta.get("selected_plugin")
+        if isinstance(plugin_id, str):
+            plugin = self._plugin_router.by_id(plugin_id)
+            if plugin is not None:
+                return plugin
+        return self._plugin_router.select(run).plugin

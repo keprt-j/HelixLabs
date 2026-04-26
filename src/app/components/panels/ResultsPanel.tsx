@@ -1,27 +1,44 @@
 import { ArtifactJsonPanel } from "./ArtifactJsonPanel";
+import { ProcedureTracePanel } from "./ProcedureTracePanel";
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 interface ResultsPanelProps {
   artifact?: Record<string, unknown> | null;
   /** Surrogate σ(T) series from execution_log.series_for_charts */
   chartSeries?: Record<string, unknown> | null;
+  procedureTrace?: Array<Record<string, unknown>> | null;
 }
 
 function buildChartRows(series: Record<string, unknown>): { temp: number; sigma: number }[] {
+  // Legacy chemistry shape
   const temps = series.temperature_c;
   const sigs = series.sigma_S_cm;
-  if (!Array.isArray(temps) || !Array.isArray(sigs) || temps.length !== sigs.length) return [];
+  if (Array.isArray(temps) && Array.isArray(sigs) && temps.length === sigs.length) {
+    const rows: { temp: number; sigma: number }[] = [];
+    for (let i = 0; i < temps.length; i++) {
+      const t = Number(temps[i]);
+      const s = Number(sigs[i]);
+      if (!Number.isFinite(t) || !Number.isFinite(s)) continue;
+      rows.push({ temp: t, sigma: s });
+    }
+    return rows;
+  }
+
+  // Generic plugin shape
+  const x = series.x;
+  const y = series.y;
+  if (!Array.isArray(x) || !Array.isArray(y) || x.length !== y.length) return [];
   const rows: { temp: number; sigma: number }[] = [];
-  for (let i = 0; i < temps.length; i++) {
-    const t = Number(temps[i]);
-    const s = Number(sigs[i]);
+  for (let i = 0; i < x.length; i++) {
+    const t = Number(x[i]);
+    const s = Number(y[i]);
     if (!Number.isFinite(t) || !Number.isFinite(s)) continue;
     rows.push({ temp: t, sigma: s });
   }
   return rows;
 }
 
-export function ResultsPanel({ artifact, chartSeries }: ResultsPanelProps) {
+export function ResultsPanel({ artifact, chartSeries, procedureTrace }: ResultsPanelProps) {
   const label = typeof chartSeries?.label === "string" ? chartSeries.label : "Simulated σ vs temperature";
   const rows = chartSeries ? buildChartRows(chartSeries as Record<string, unknown>) : [];
 
@@ -51,6 +68,8 @@ export function ResultsPanel({ artifact, chartSeries }: ResultsPanelProps) {
           </p>
         </div>
       )}
+
+      <ProcedureTracePanel trace={procedureTrace} />
 
       <ArtifactJsonPanel
         artifact={artifact}

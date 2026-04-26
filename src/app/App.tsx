@@ -197,6 +197,11 @@ export default function App() {
   const failureRecovery = asRecord(artifacts.failure_recovery_plan);
   const validationReport = asRecord(artifacts.validation_report);
   const interpretation = asRecord(artifacts.interpretation);
+  const normalizedResults = asRecord(artifacts.normalized_results);
+  const procedureTraceRaw = normalizedResults?.procedure_trace;
+  const procedureTrace = Array.isArray(procedureTraceRaw)
+    ? procedureTraceRaw.filter((x): x is Record<string, unknown> => typeof x === "object" && x !== null)
+    : [];
   const nextRec = asRecord(artifacts.next_experiment_recommendation);
 
   const headerStatus = run ? mapRunStateToHeaderStatus(run.state) : "Draft";
@@ -311,7 +316,7 @@ export default function App() {
             return (
               <div>
                 <h2 className="text-xl text-stone-900 mb-6">Results</h2>
-                <ResultsPanel artifact={interpretation} chartSeries={chartSeries} />
+                <ResultsPanel artifact={interpretation} chartSeries={chartSeries} procedureTrace={procedureTrace} />
               </div>
             );
           default:
