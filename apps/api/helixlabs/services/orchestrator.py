@@ -1,8 +1,26 @@
 from __future__ import annotations
 
+from typing import Any
+
 from helixlabs.domain.models import PipelinePayload, ProvenanceEvent, RunRecord, RunState
 from helixlabs.repos.json_run_repository import JsonRunRepository
 from helixlabs.services.stage_service import StageService
+
+
+ARTIFACT_SUMMARY_KEYS = {
+    "experiment_ir",
+    "feasibility_report",
+    "value_score",
+    "protocol",
+    "schedule",
+    "execution_log",
+    "failure_recovery_plan",
+    "validation_report",
+    "interpretation",
+    "next_experiment_recommendation",
+    "report",
+    "memory_update",
+}
 
 
 class RunOrchestrator:
@@ -45,7 +63,15 @@ class RunOrchestrator:
         return run
 
     def get_run(self, run_id: str) -> RunRecord | None:
-        return self._repo.get(run_id)
+        run = self._repo.get(run_id)
+        if run is None:
+            return None
+        changed = self._refresh_stale_pipeline_summaries(run)
+        changed = self._refresh_stale_artifact_summaries(run) or changed
+        if changed:
+            run.updated_at = RunRecord.now_iso()
+            self._repo.save(run)
+        return run
 
     def list_runs(self, limit: int = 100) -> list[RunRecord]:
         return self._repo.list_runs(limit=limit)
@@ -75,6 +101,11 @@ class RunOrchestrator:
             raise ValueError(f"Hypothesis '{hypothesis_id}' not found")
         cg["selected_hypothesis_id"] = str(selected.get("id"))
         cg["selected_hypothesis_statement"] = str(selected.get("statement", ""))
+        display_hypotheses = cg.get("display_hypotheses") if isinstance(cg.get("display_hypotheses"), list) else []
+        for h in display_hypotheses:
+            if isinstance(h, dict) and str(h.get("id", "")).strip() == hypothesis_id.strip():
+                cg["selected_hypothesis_display_statement"] = str(h.get("statement", ""))
+                break
         cg["selected_hypothesis_reason"] = (
             f"User selected {selected.get('id')} ({selected.get('title', 'hypothesis')}) for planning focus."
         )
@@ -132,6 +163,8 @@ class RunOrchestrator:
             "next_experiment_recommendation",
             "report",
             "memory_update",
+            "pipeline_summaries",
+            "artifact_summaries",
         ]:
             run.artifacts.pop(key, None)
         run.provenance.append(
@@ -295,27 +328,33 @@ class RunOrchestrator:
         run.pipeline.planning.compiler = payload
         run.artifacts["experiment_ir"] = payload
         run.provenance.extend(events)
+        self._refresh_artifact_summary(run, "experiment_ir")
 
     def _apply_validate_feasibility(self, run: RunRecord) -> None:
         payload, events = self._stage_service.stage_validate_feasibility(run)
         run.artifacts["feasibility_report"] = payload
         run.provenance.extend(events)
+        self._refresh_artifact_summary(run, "feasibility_report")
 
     def _apply_score_value(self, run: RunRecord) -> None:
         payload, events = self._stage_service.stage_score_value(run)
         run.artifacts["value_score"] = payload
         run.provenance.extend(events)
+        self._refresh_artifact_summary(run, "value_score")
 
     def _apply_generate_protocol(self, run: RunRecord) -> None:
         payload, events = self._stage_service.stage_generate_protocol(run)
         run.artifacts["protocol"] = payload
         run.provenance.extend(events)
+        self._refresh_artifact_summary(run, "protocol")
 
     def _apply_schedule(self, run: RunRecord) -> None:
         payload, events = self._stage_service.stage_schedule(run)
         run.pipeline.planning.schedule = payload
         run.artifacts["schedule"] = payload
         run.provenance.extend(events)
+        self._refresh_artifact_summary(run, "schedule")
+        self._refresh_pipeline_summary(run, "planning")
 
     def _apply_execute(self, run: RunRecord) -> None:
         payload, events = self._stage_service.stage_execute(run)
@@ -332,6 +371,7 @@ class RunOrchestrator:
             "origin": payload.get("origin", "simulated"),
         }
         run.provenance.extend(events)
+        self._refresh_artifact_summary(run, "execution_log")
 
     def _apply_recover(self, run: RunRecord) -> None:
         payload, events = self._stage_service.stage_recover(run)
@@ -342,6 +382,7 @@ class RunOrchestrator:
         norm["procedure_trace"] = self._procedure_trace(run=run, status="recovered")
         run.artifacts["normalized_results"] = norm
         run.provenance.extend(events)
+        self._refresh_artifact_summary(run, "failure_recovery_plan")
 
     def _apply_validate_results(self, run: RunRecord) -> None:
         payload, events = self._stage_service.stage_validate_results(run)
@@ -358,6 +399,7 @@ class RunOrchestrator:
         norm["procedure_trace"] = self._procedure_trace(run=run, status="validated")
         run.artifacts["normalized_results"] = norm
         run.provenance.extend(events)
+        self._refresh_artifact_summary(run, "validation_report")
 
     def _apply_interpret(self, run: RunRecord) -> None:
         payload, events = self._stage_service.stage_interpret(run)
@@ -372,6 +414,8 @@ class RunOrchestrator:
         norm["procedure_trace"] = self._procedure_trace(run=run, status="interpreted")
         run.artifacts["normalized_results"] = norm
         run.provenance.extend(events)
+        self._refresh_artifact_summary(run, "interpretation")
+        self._refresh_pipeline_summary(run, "runtime")
 
     def _apply_recommend_next(self, run: RunRecord) -> None:
         payload, events = self._stage_service.stage_recommend_next(run)
@@ -382,6 +426,7 @@ class RunOrchestrator:
         norm["procedure_trace"] = self._procedure_trace(run=run, status="recommended")
         run.artifacts["normalized_results"] = norm
         run.provenance.extend(events)
+        self._refresh_artifact_summary(run, "next_experiment_recommendation")
 
     def _apply_update_memory(self, run: RunRecord) -> None:
         payload, events = self._stage_service.stage_update_memory(run)
@@ -394,6 +439,133 @@ class RunOrchestrator:
         norm["procedure_trace"] = self._procedure_trace(run=run, status="completed")
         run.artifacts["normalized_results"] = norm
         run.provenance.extend(events + report_events)
+        self._refresh_artifact_summary(run, "memory_update")
+        self._refresh_artifact_summary(run, "report")
+        self._refresh_pipeline_summary(run, "outcomes")
+
+    def _refresh_pipeline_summary(self, run: RunRecord, section: str) -> None:
+        summaries = run.artifacts.get("pipeline_summaries")
+        if not isinstance(summaries, dict):
+            summaries = {}
+        summaries[section] = self._stage_service.summarize_pipeline_section(
+            run=run,
+            section=section,
+            section_json=self._pipeline_section_json(run, section),
+        )
+        run.artifacts["pipeline_summaries"] = summaries
+
+    def _refresh_artifact_summary(self, run: RunRecord, artifact_name: str) -> None:
+        artifact = run.artifacts.get(artifact_name)
+        if not isinstance(artifact, dict) or not artifact:
+            return
+        summaries = run.artifacts.get("artifact_summaries")
+        if not isinstance(summaries, dict):
+            summaries = {}
+        summaries[artifact_name] = self._stage_service.summarize_json_artifact(
+            run=run,
+            artifact_name=artifact_name,
+            artifact_json=artifact,
+        )
+        run.artifacts["artifact_summaries"] = summaries
+
+    def _refresh_stale_pipeline_summaries(self, run: RunRecord) -> bool:
+        summaries = run.artifacts.get("pipeline_summaries")
+        if not isinstance(summaries, dict):
+            summaries = {}
+        changed = False
+        for section in ("planning", "runtime", "outcomes"):
+            if not self._section_has_summary_data(run, section):
+                continue
+            existing = summaries.get(section)
+            if self._summary_needs_refresh(existing):
+                summaries[section] = self._stage_service.summarize_pipeline_section(
+                    run=run,
+                    section=section,
+                    section_json=self._pipeline_section_json(run, section),
+                )
+                changed = True
+        if changed:
+            run.artifacts["pipeline_summaries"] = summaries
+        return changed
+
+    def _refresh_stale_artifact_summaries(self, run: RunRecord) -> bool:
+        summaries = run.artifacts.get("artifact_summaries")
+        if not isinstance(summaries, dict):
+            summaries = {}
+        changed = False
+        for artifact_name in ARTIFACT_SUMMARY_KEYS:
+            artifact = run.artifacts.get(artifact_name)
+            if not isinstance(artifact, dict) or not artifact:
+                continue
+            existing = summaries.get(artifact_name)
+            if not isinstance(existing, dict) or not str(existing.get("summary", "")).strip():
+                summaries[artifact_name] = self._stage_service.summarize_json_artifact(
+                    run=run,
+                    artifact_name=artifact_name,
+                    artifact_json=artifact,
+                )
+                changed = True
+        if changed:
+            run.artifacts["artifact_summaries"] = summaries
+        return changed
+
+    @staticmethod
+    def _summary_needs_refresh(existing: Any) -> bool:
+        if not isinstance(existing, dict):
+            return True
+        summary = str(existing.get("summary", "")).strip()
+        source = str(existing.get("source", "")).strip()
+        if source == "openai":
+            return False
+        generic_markers = [
+            "pipeline data has been generated and persisted",
+            "inspect the JSON below for the persisted pipeline state",
+        ]
+        return not summary or any(marker in summary for marker in generic_markers)
+
+    @staticmethod
+    def _section_has_summary_data(run: RunRecord, section: str) -> bool:
+        artifacts = run.artifacts
+        if section == "planning":
+            return bool(artifacts.get("schedule"))
+        if section == "runtime":
+            return bool(artifacts.get("interpretation"))
+        return bool(artifacts.get("memory_update") or artifacts.get("report"))
+
+    @staticmethod
+    def _pipeline_section_json(run: RunRecord, section: str) -> dict[str, Any]:
+        artifacts = run.artifacts
+        if section == "planning":
+            return {
+                "pipeline": run.pipeline.planning.model_dump(mode="json"),
+                "artifacts": {
+                    "experiment_ir": artifacts.get("experiment_ir"),
+                    "feasibility_report": artifacts.get("feasibility_report"),
+                    "value_score": artifacts.get("value_score"),
+                    "protocol": artifacts.get("protocol"),
+                    "schedule": artifacts.get("schedule"),
+                },
+            }
+        if section == "runtime":
+            return {
+                "pipeline": run.pipeline.runtime.model_dump(mode="json"),
+                "artifacts": {
+                    "execution_log": artifacts.get("execution_log"),
+                    "failure_recovery_plan": artifacts.get("failure_recovery_plan"),
+                    "validation_report": artifacts.get("validation_report"),
+                    "normalized_results": artifacts.get("normalized_results"),
+                    "interpretation": artifacts.get("interpretation"),
+                },
+            }
+        return {
+            "pipeline": run.pipeline.outcomes.model_dump(mode="json"),
+            "artifacts": {
+                "next_experiment_recommendation": artifacts.get("next_experiment_recommendation"),
+                "report": artifacts.get("report"),
+                "memory_update": artifacts.get("memory_update"),
+                "provenance": [event.model_dump(mode="json") for event in run.provenance],
+            },
+        }
 
     @staticmethod
     def _procedure_trace(run: RunRecord, status: str) -> list[dict]:

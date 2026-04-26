@@ -10,10 +10,12 @@ interface ResultsPanelProps {
   artifact?: Record<string, unknown> | null;
   /** Dynamic chart series from execution_log.series_for_charts */
   chartSeries?: Record<string, unknown> | null;
+  generatedAt?: string | null;
   procedureTrace?: Array<Record<string, unknown>> | null;
   observations?: Array<Record<string, unknown>> | null;
   fidelity?: string | null;
   origin?: string | null;
+  summary?: string | null;
 }
 
 type YFormat = "auto" | "scientific" | "percent" | "currency" | "integer" | "float";
@@ -173,7 +175,16 @@ function paddedDomain(values: number[], padFraction = 0.08): AxisDomain {
   return [min, max];
 }
 
-export function ResultsPanel({ artifact, chartSeries, procedureTrace, observations, fidelity, origin }: ResultsPanelProps) {
+export function ResultsPanel({
+  artifact,
+  chartSeries,
+  generatedAt,
+  procedureTrace,
+  observations,
+  fidelity,
+  origin,
+  summary,
+}: ResultsPanelProps) {
   const [uploaded, setUploaded] = useState<XYRow[]>([]);
   const label = typeof chartSeries?.label === "string" ? chartSeries.label : "Simulated series";
   const chart = chartSeries ? buildChartModel(chartSeries as Record<string, unknown>) : null;
@@ -318,6 +329,8 @@ export function ResultsPanel({ artifact, chartSeries, procedureTrace, observatio
       <ArtifactJsonPanel
         artifact={artifact}
         emptyMessage="Interpretation is produced after the interpret stage completes."
+        generatedAt={generatedAt}
+        summary={summary}
         title="Interpretation (from run)"
       />
     </div>

@@ -1,3 +1,4 @@
+import React from "react";
 import { ArrowDown } from "lucide-react";
 
 interface ClaimGraphPanelProps {
@@ -7,9 +8,27 @@ interface ClaimGraphPanelProps {
 }
 
 export function ClaimGraphPanel({ claimGraph, onSelectHypothesis, busy }: ClaimGraphPanelProps) {
-  const main = typeof claimGraph?.main_claim === "string" ? claimGraph.main_claim : "";
-  const weakest = typeof claimGraph?.weakest_claim === "string" ? claimGraph.weakest_claim : "";
-  const nextTarget = typeof claimGraph?.next_target === "string" ? claimGraph.next_target : "";
+  const main = cleanClaim(
+    typeof claimGraph?.display_main_claim === "string"
+      ? claimGraph.display_main_claim
+      : typeof claimGraph?.main_claim === "string"
+        ? claimGraph.main_claim
+        : "",
+  );
+  const weakest = cleanClaim(
+    typeof claimGraph?.display_weakest_claim === "string"
+      ? claimGraph.display_weakest_claim
+      : typeof claimGraph?.weakest_claim === "string"
+        ? claimGraph.weakest_claim
+        : "",
+  );
+  const nextTarget = cleanClaim(
+    typeof claimGraph?.display_next_target === "string"
+      ? claimGraph.display_next_target
+      : typeof claimGraph?.next_target === "string"
+        ? claimGraph.next_target
+        : "",
+  );
   const selectedId = typeof claimGraph?.selected_hypothesis_id === "string" ? claimGraph.selected_hypothesis_id : null;
   const selectedReason =
     typeof claimGraph?.selected_hypothesis_reason === "string" ? claimGraph.selected_hypothesis_reason : null;
@@ -17,6 +36,13 @@ export function ClaimGraphPanel({ claimGraph, onSelectHypothesis, busy }: ClaimG
   const hypotheses = hypothesesRaw
     .map((h) => (h && typeof h === "object" ? (h as Record<string, unknown>) : null))
     .filter((h): h is Record<string, unknown> => h !== null);
+  const displayHypothesesRaw = Array.isArray(claimGraph?.display_hypotheses) ? claimGraph?.display_hypotheses : [];
+  const displayById = new Map(
+    displayHypothesesRaw
+      .map((h) => (h && typeof h === "object" ? (h as Record<string, unknown>) : null))
+      .filter((h): h is Record<string, unknown> => h !== null)
+      .map((h) => [String(h.id ?? ""), h]),
+  );
   const ctx = claimGraph?.context && typeof claimGraph.context === "object" ? (claimGraph.context as Record<string, unknown>) : null;
 
   if (!claimGraph || Object.keys(claimGraph).length === 0) {
@@ -72,8 +98,22 @@ export function ClaimGraphPanel({ claimGraph, onSelectHypothesis, busy }: ClaimG
           {hypotheses.length > 0 ? (
             hypotheses.map((h) => {
               const id = typeof h.id === "string" ? h.id : "H?";
-              const title = typeof h.title === "string" ? h.title : "Hypothesis";
-              const statement = typeof h.statement === "string" ? h.statement : "—";
+              const display = displayById.get(id);
+              const title = cleanClaim(
+                typeof display?.title === "string"
+                  ? display.title
+                  : typeof h.title === "string"
+                    ? h.title
+                    : "Hypothesis",
+              );
+              const statement = cleanClaim(
+                typeof display?.statement === "string"
+                  ? display.statement
+                  : typeof h.statement === "string"
+                    ? h.statement
+                    : "—",
+              );
+              const rationale = cleanClaim(typeof display?.rationale === "string" ? display.rationale : "");
               const score = typeof h.score === "number" ? h.score : null;
               const active = selectedId != null && id === selectedId;
               return (
@@ -101,6 +141,7 @@ export function ClaimGraphPanel({ claimGraph, onSelectHypothesis, busy }: ClaimG
                     </div>
                   </div>
                   <div className="text-sm text-stone-800 mt-1">{statement}</div>
+                  {rationale && <div className="text-xs text-stone-600 mt-2">{rationale}</div>}
                 </div>
               );
             })
@@ -112,4 +153,24 @@ export function ClaimGraphPanel({ claimGraph, onSelectHypothesis, busy }: ClaimG
       </div>
     </div>
   );
+}
+
+function cleanClaim(value: string): string {
+  if (typeof document === "undefined") {
+    return (value || "")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&")
+      .replace(/<\s*sub\s*>(.*?)<\s*\/\s*sub\s*>/gi, "$1")
+      .replace(/<[^>]+>/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+  const element = document.createElement("textarea");
+  element.innerHTML = value || "";
+  return element.value
+    .replace(/<\s*sub\s*>(.*?)<\s*\/\s*sub\s*>/gi, "$1")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }

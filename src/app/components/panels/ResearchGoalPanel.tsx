@@ -50,7 +50,10 @@ export function ResearchGoalPanel({ userGoal, intent }: ResearchGoalPanelProps) 
 
             {entities.length > 0 && (
               <div>
-                <div className="text-xs text-stone-600 mb-2 font-mono">ENTITIES</div>
+                <div className="text-xs text-stone-600 mb-1 font-mono">EXTRACTED KEY TERMS</div>
+                <p className="text-xs text-stone-500 mb-2">
+                  Lightweight terms parsed from the goal; not a validated scientific ontology.
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {entities.map((e) => (
                     <span key={e} className="px-2 py-1 bg-amber-100 text-stone-700 rounded text-sm font-mono">

@@ -12,6 +12,7 @@ from helixlabs.domain.models import (
 )
 from helixlabs.services.literature_synthesizer import LiteratureSynthesizerService
 from helixlabs.services.evidence_store import EvidenceStore
+from helixlabs.services.llm_display import DisplayTextService
 from helixlabs.services.plugin_router import PluginRouter
 from helixlabs.services.plugins.base import ExperimentPlugin
 from helixlabs.services.ir_validator import ExperimentIRValidator
@@ -24,11 +25,13 @@ class StageService:
         evidence_store: EvidenceStore | None = None,
         ir_validator: ExperimentIRValidator | None = None,
         plugin_router: PluginRouter | None = None,
+        display_text: DisplayTextService | None = None,
     ) -> None:
         self._synthesizer = synthesizer or LiteratureSynthesizerService()
         self._evidence_store = evidence_store or EvidenceStore()
         self._ir_validator = ir_validator or ExperimentIRValidator()
         self._plugin_router = plugin_router or PluginRouter()
+        self._display_text = display_text or DisplayTextService()
 
     def build_intake(self, run: RunRecord) -> tuple[IntakePayload, list[ProvenanceEvent]]:
         synthesis = self._synthesizer.synthesize(run.user_goal)
@@ -336,6 +339,21 @@ class StageService:
                 "claim_evidence": lit.get("claim_evidence", {}),
             },
         }
+        display = self._display_text.polish_claim_graph(
+            run=run,
+            claim_graph=payload,
+            context={
+                "parsed_goal": run.pipeline.intake.parsed_goal,
+                "top_studies": list(lit.get("studies") or [])[:5],
+                "prior_work": prior,
+                "negative_results": run.artifacts.get("negative_results", {}),
+            },
+        )
+        payload.update(display)
+        for hyp in payload.get("display_hypotheses", []):
+            if isinstance(hyp, dict) and hyp.get("id") == payload["selected_hypothesis_id"]:
+                payload["selected_hypothesis_display_statement"] = hyp.get("statement")
+                break
         return payload, [
             self._event("DECISION", "Intake", "Generated three hypothesis candidates and selected one for planning focus")
         ]
@@ -351,7 +369,8 @@ class StageService:
             "experiment_type": f"plugin:{selected.plugin.plugin_id}",
             "variables": list((validation.get("normalized_ir") or {}).get("factors") or []),
             "design_matrix": plugin_payload.get("design_matrix", []),
-            "target_claim": run.pipeline.intake.claim_graph.get("selected_hypothesis_statement")
+            "target_claim": run.pipeline.intake.claim_graph.get("selected_hypothesis_display_statement")
+            or run.pipeline.intake.claim_graph.get("selected_hypothesis_statement")
             or run.pipeline.intake.claim_graph.get("weakest_claim"),
             "simulation": plugin_payload.get("simulation", {}),
             "experiment_ir": validation.get("normalized_ir") or plugin_payload.get("experiment_ir") or {},
@@ -439,6 +458,16 @@ class StageService:
 
     def retrieve_evidence(self, run_id: str, query: str, top_k: int = 5) -> list[dict]:
         return self._evidence_store.retrieve(run_id=run_id, query=query, top_k=top_k)
+
+    def summarize_pipeline_section(self, run: RunRecord, section: str, section_json: dict) -> dict[str, str]:
+        return self._display_text.summarize_pipeline_section(run=run, section=section, section_json=section_json)
+
+    def summarize_json_artifact(self, run: RunRecord, artifact_name: str, artifact_json: dict) -> dict[str, str]:
+        return self._display_text.summarize_json_artifact(
+            run=run,
+            artifact_name=artifact_name,
+            artifact_json=artifact_json,
+        )
 
     @staticmethod
     def _event(event_type: str, category: str, message: str) -> ProvenanceEvent:

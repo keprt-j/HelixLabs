@@ -2,10 +2,12 @@ import { TrendingUp } from "lucide-react";
 import { ArtifactJsonPanel } from "./ArtifactJsonPanel";
 
 interface NextExperimentPanelProps {
+  generatedAt?: string | null;
   recommendation?: Record<string, unknown> | null;
+  summary?: string | null;
 }
 
-export function NextExperimentPanel({ recommendation }: NextExperimentPanelProps) {
+export function NextExperimentPanel({ generatedAt, recommendation, summary }: NextExperimentPanelProps) {
   const text = typeof recommendation?.recommendation === "string" ? recommendation.recommendation : "";
   const eig =
     typeof recommendation?.expected_information_gain === "number"
@@ -44,12 +46,13 @@ export function NextExperimentPanel({ recommendation }: NextExperimentPanelProps
           </div>
         </div>
 
-        <div className="mt-4">
-          <div className="text-xs text-stone-600 mb-2 font-mono">RAW PAYLOAD</div>
-          <pre className="text-xs text-stone-800 bg-white/70 border border-amber-200 rounded-lg p-4 overflow-x-auto max-h-64">
-            {JSON.stringify(recommendation, null, 2)}
-          </pre>
-        </div>
+        <ArtifactJsonPanel
+          artifact={recommendation}
+          emptyMessage="Next-experiment recommendation is generated near the end of the outcomes pipeline (recommend-next stage)."
+          generatedAt={generatedAt}
+          summary={summary}
+          title="Next experiment JSON"
+        />
       </div>
     </div>
   );

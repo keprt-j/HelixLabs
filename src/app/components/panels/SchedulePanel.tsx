@@ -1,9 +1,13 @@
+import { PipelineJsonInspector } from "./PipelineJsonInspector";
+
 interface SchedulePanelProps {
+  generatedAt?: string | null;
   schedule?: Record<string, unknown> | null;
+  summary?: string | null;
   protocol?: Record<string, unknown> | null;
 }
 
-export function SchedulePanel({ schedule, protocol }: SchedulePanelProps) {
+export function SchedulePanel({ generatedAt, schedule, summary, protocol }: SchedulePanelProps) {
   const sid = typeof schedule?.schedule_id === "string" ? schedule.schedule_id : "";
   const hours = typeof schedule?.total_duration_hours === "number" ? schedule.total_duration_hours : null;
   const util = typeof schedule?.resource_utilization_pct === "number" ? schedule.resource_utilization_pct : null;
@@ -52,9 +56,12 @@ export function SchedulePanel({ schedule, protocol }: SchedulePanelProps) {
         </div>
       )}
 
-      <pre className="text-xs text-stone-700 bg-white/60 border border-amber-200 rounded p-3 overflow-x-auto">
-        {JSON.stringify(schedule, null, 2)}
-      </pre>
+      <PipelineJsonInspector
+        title="SCHEDULE JSON"
+        summary={summary}
+        generatedAt={generatedAt}
+        data={schedule}
+      />
     </div>
   );
 }

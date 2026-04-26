@@ -30,6 +30,7 @@ import { ExperimentBriefPanel } from "./components/panels/ExperimentBriefPanel";
 import { StageNarrativeBanner } from "./components/panels/StageNarrativeBanner";
 import { ProcedureProgressPanel } from "./components/panels/ProcedureProgressPanel";
 import { SimulationControlsPanel } from "./components/panels/SimulationControlsPanel";
+import { PipelineJsonInspector } from "./components/panels/PipelineJsonInspector";
 import { mapRunStateToHeaderStatus } from "./lib/runUi";
 import { buildDemoReport } from "./lib/demoReport";
 import type { HelixRun } from "./types/run";
@@ -267,6 +268,7 @@ export default function App() {
         <LiteratureReview
           experiment={experiment}
           runId={runId}
+          onHomeClick={() => setStage("homepage")}
           onProceedToDashboard={() => {
             void refreshRun();
             setStage("dashboard");
@@ -307,6 +309,8 @@ export default function App() {
     ? observationsRaw.filter((x): x is Record<string, unknown> => typeof x === "object" && x !== null)
     : [];
   const nextRec = asRecord(artifacts.next_experiment_recommendation);
+  const pipelineSummaries = asRecord(artifacts.pipeline_summaries);
+  const artifactSummaries = asRecord(artifacts.artifact_summaries);
 
   const headerStatus = run ? mapRunStateToHeaderStatus(run.state) : "Draft";
   const showApprove = run?.state === "AWAITING_HUMAN_APPROVAL";
@@ -345,6 +349,80 @@ export default function App() {
   };
 
   const selectedTab = sectionTabs[currentSection];
+
+  const summaryFor = (section: "planning" | "runtime" | "outcomes") => {
+    const value = asRecord(pipelineSummaries?.[section]);
+    return {
+      summary: typeof value?.summary === "string" ? value.summary : null,
+      generatedAt: typeof value?.generated_at === "string" ? value.generated_at : null,
+    };
+  };
+
+  const artifactSummaryFor = (artifactKey: string) => {
+    const value = asRecord(artifactSummaries?.[artifactKey]);
+    return {
+      summary: typeof value?.summary === "string" ? value.summary : null,
+      generatedAt: typeof value?.generated_at === "string" ? value.generated_at : null,
+    };
+  };
+
+  const renderPipelineInspector = () => {
+    if (!run) return null;
+    if (currentSection === "planning") {
+      const summary = summaryFor("planning");
+      return (
+        <PipelineJsonInspector
+          title="Planning Pipeline JSON"
+          summary={summary.summary}
+          generatedAt={summary.generatedAt}
+          data={{
+            pipeline: run.pipeline.planning,
+            artifacts: { experiment_ir: experimentIr, feasibility_report: feasibilityReport, value_score: valueScore, protocol, schedule },
+          }}
+        />
+      );
+    }
+    if (currentSection === "runtime") {
+      const summary = summaryFor("runtime");
+      return (
+        <PipelineJsonInspector
+          title="Runtime Pipeline JSON"
+          summary={summary.summary}
+          generatedAt={summary.generatedAt}
+          data={{
+            pipeline: run.pipeline.runtime,
+            artifacts: {
+              execution_log: executionLog,
+              failure_recovery_plan: failureRecovery,
+              validation_report: validationReport,
+              normalized_results: normalizedResults,
+              interpretation,
+            },
+          }}
+        />
+      );
+    }
+    if (currentSection === "outcomes") {
+      const summary = summaryFor("outcomes");
+      return (
+        <PipelineJsonInspector
+          title="Outcomes & Provenance JSON"
+          summary={summary.summary}
+          generatedAt={summary.generatedAt}
+          data={{
+            pipeline: run.pipeline.outcomes,
+            artifacts: {
+              next_experiment_recommendation: nextRec,
+              report: asRecord(artifacts.report),
+              memory_update: asRecord(artifacts.memory_update),
+              provenance: run.provenance,
+            },
+          }}
+        />
+      );
+    }
+    return null;
+  };
 
   const renderPanel = () => {
     switch (currentSection) {
@@ -385,6 +463,7 @@ export default function App() {
                   feasibilityReport={feasibilityReport}
                   valueScore={valueScore}
                   protocol={protocol}
+                  artifactSummaries={artifactSummaries}
                 />
               </div>
             );
@@ -403,7 +482,12 @@ export default function App() {
             return (
               <div>
                 <h2 className="text-xl text-stone-900 mb-6">Schedule</h2>
-                <SchedulePanel schedule={schedule} protocol={protocol} />
+                <SchedulePanel
+                  schedule={schedule}
+                  protocol={protocol}
+                  summary={artifactSummaryFor("schedule").summary}
+                  generatedAt={artifactSummaryFor("schedule").generatedAt}
+                />
               </div>
             );
           default:
@@ -415,21 +499,33 @@ export default function App() {
             return (
               <div>
                 <h2 className="text-xl text-stone-900 mb-6">Execution</h2>
-                <ExecutionPanel artifact={executionLog} />
+                <ExecutionPanel
+                  artifact={executionLog}
+                  summary={artifactSummaryFor("execution_log").summary}
+                  generatedAt={artifactSummaryFor("execution_log").generatedAt}
+                />
               </div>
             );
           case "recovery":
             return (
               <div>
                 <h2 className="text-xl text-stone-900 mb-6">Failure & Recovery</h2>
-                <FailureRecoveryPanel artifact={failureRecovery} />
+                <FailureRecoveryPanel
+                  artifact={failureRecovery}
+                  summary={artifactSummaryFor("failure_recovery_plan").summary}
+                  generatedAt={artifactSummaryFor("failure_recovery_plan").generatedAt}
+                />
               </div>
             );
           case "validation":
             return (
               <div>
                 <h2 className="text-xl text-stone-900 mb-6">Data Validation</h2>
-                <DataValidationPanel artifact={validationReport} />
+                <DataValidationPanel
+                  artifact={validationReport}
+                  summary={artifactSummaryFor("validation_report").summary}
+                  generatedAt={artifactSummaryFor("validation_report").generatedAt}
+                />
               </div>
             );
           case "results":
@@ -439,6 +535,8 @@ export default function App() {
                 <ResultsPanel
                   artifact={interpretation}
                   chartSeries={chartSeries}
+                  summary={artifactSummaryFor("interpretation").summary}
+                  generatedAt={artifactSummaryFor("interpretation").generatedAt}
                   procedureTrace={procedureTrace}
                   observations={observations}
                   fidelity={normalizedFidelity}
@@ -462,7 +560,11 @@ export default function App() {
             return (
               <div>
                 <h2 className="text-xl text-stone-900 mb-6">Next Experiment</h2>
-                <NextExperimentPanel recommendation={nextRec} />
+                <NextExperimentPanel
+                  recommendation={nextRec}
+                  summary={artifactSummaryFor("next_experiment_recommendation").summary}
+                  generatedAt={artifactSummaryFor("next_experiment_recommendation").generatedAt}
+                />
               </div>
             );
           case "provenance":
@@ -531,6 +633,7 @@ export default function App() {
               <div className="mb-4 text-sm text-stone-600">Loading run {runId}…</div>
             )}
             {renderPanel()}
+            {renderPipelineInspector()}
             <StageNarrativeBanner section={currentSection} tab={selectedTab} />
           </div>
         </main>

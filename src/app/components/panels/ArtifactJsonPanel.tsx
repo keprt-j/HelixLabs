@@ -1,11 +1,17 @@
-/** Shows server artifact JSON or a short empty-state hint. */
+import { PipelineJsonInspector } from "./PipelineJsonInspector";
+
+/** Shows server artifact JSON behind a collapsible, summary-first inspector. */
 export function ArtifactJsonPanel({
   artifact,
   emptyMessage,
+  generatedAt,
+  summary,
   title,
 }: {
   artifact: Record<string, unknown> | null | undefined;
   emptyMessage: string;
+  generatedAt?: string | null;
+  summary?: string | null;
   title?: string;
 }) {
   if (!artifact || Object.keys(artifact).length === 0) {
@@ -15,11 +21,11 @@ export function ArtifactJsonPanel({
   }
 
   return (
-    <div className="space-y-3">
-      {title ? <h3 className="text-sm text-stone-600">{title}</h3> : null}
-      <pre className="text-xs text-stone-800 bg-white/70 border border-amber-200 rounded-lg p-4 overflow-x-auto max-h-[480px]">
-        {JSON.stringify(artifact, null, 2)}
-      </pre>
-    </div>
+    <PipelineJsonInspector
+      title={title ?? "Artifact JSON"}
+      summary={summary}
+      generatedAt={generatedAt}
+      data={artifact}
+    />
   );
 }

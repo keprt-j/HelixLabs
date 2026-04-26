@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { ArrowRight, Calendar, CheckCircle2, Loader2, Users, X, XCircle } from "lucide-react";
+import { ArrowRight, Calendar, CheckCircle2, Home, Loader2, Users, X, XCircle } from "lucide-react";
 
 interface LiteratureReviewProps {
   experiment: string;
   /** When set, loads that run instead of creating a new one (single session). */
   runId?: string | null;
   onProceedToDashboard: () => void;
+  onHomeClick?: () => void;
 }
 
 interface Study {
@@ -42,7 +43,7 @@ function concludeText(value: unknown, limit: number, fallback: string): string {
   return base ? `${base}.` : fallback;
 }
 
-export function LiteratureReviewLive({ experiment, runId: existingRunId, onProceedToDashboard }: LiteratureReviewProps) {
+export function LiteratureReviewLive({ experiment, runId: existingRunId, onProceedToDashboard, onHomeClick }: LiteratureReviewProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [studies, setStudies] = useState<Study[]>([]);
@@ -151,6 +152,16 @@ export function LiteratureReviewLive({ experiment, runId: existingRunId, onProce
                     Analyzing prior work for: <span className="text-green-700 font-medium">{experiment}</span>
                   </p>
                 </div>
+                {onHomeClick ? (
+                  <button
+                    type="button"
+                    onClick={onHomeClick}
+                    className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white rounded-lg flex items-center gap-2 transition-colors shadow"
+                  >
+                    <Home className="w-4 h-4" />
+                    Home
+                  </button>
+                ) : null}
               </div>
               <div className="mt-3 text-xs text-stone-600">Novelty score: {noveltyScore}/10</div>
             </div>
