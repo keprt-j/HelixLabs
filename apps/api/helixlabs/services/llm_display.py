@@ -75,7 +75,10 @@ class DisplayTextService:
                 "{\"summary\":\"...\"}. The summary must be specific to the provided JSON, not a generic status. "
                 "Mention concrete values, artifacts, decisions, resources, result patterns, recommendations, or provenance "
                 "counts that appear in the JSON. Explain what happened, why it matters, and what decision/output was produced. "
-                "Use 2-4 concise sentences. Do not overclaim scientific validity.\n"
+                    "Use 2-4 concise sentences. Start with the specific result, decision, or risk; do not start with "
+                    "\"The JSON shows\", \"The artifact defines\", \"The report indicates\", \"This section\", or similar framing. "
+                    "Prefer active, judge-facing wording such as \"24 design points passed feasibility...\" or "
+                    "\"Recovery chose retry_failed_condition...\". Do not overclaim scientific validity.\n"
                 f"Section: {section}\n"
                 f"Run state: {run.state.value}\n"
                 f"User goal: {run.user_goal}\n"
@@ -83,7 +86,7 @@ class DisplayTextService:
                 f"Section JSON: {json.dumps(section_json, default=str)[:12000]}"
             )
             data = self._json_object(self._generate_text(client=client, prompt=prompt, temperature=0.2, max_tokens=280))
-            summary = self._clean_text(str(data.get("summary", "")))
+            summary = self._clean_summary(str(data.get("summary", "")))
             if not summary:
                 return fallback
             return {"summary": summary[:900], "generated_at": generated_at, "source": "openai"}
@@ -120,8 +123,11 @@ class DisplayTextService:
                 "You summarize one HelixLabs JSON artifact for a dashboard. Return one JSON object only, "
                 "with this exact shape: {\"summary\":\"...\"}. The summary must be specific to the artifact JSON. "
                 "Mention concrete fields, counts, decisions, warnings, resource allocations, recovery choices, "
-                "validation mappings, or result values that appear in the artifact. Use 1-3 concise sentences. "
-                "Do not overclaim scientific validity.\n"
+                    "validation mappings, or result values that appear in the artifact. Use 1-3 concise sentences. "
+                    "Start with the specific result, decision, or risk; do not start with \"The JSON shows\", "
+                    "\"The artifact defines\", \"The report indicates\", \"The execution log shows\", "
+                    "\"This artifact\", or similar filler. Prefer active, judge-facing wording. "
+                    "Do not overclaim scientific validity.\n"
                 f"Artifact name: {artifact_name}\n"
                 f"Run state: {run.state.value}\n"
                 f"User goal: {run.user_goal}\n"
@@ -129,7 +135,7 @@ class DisplayTextService:
                 f"Artifact JSON: {json.dumps(artifact_json, default=str)[:10000]}"
             )
             data = self._json_object(self._generate_text(client=client, prompt=prompt, temperature=0.2, max_tokens=240))
-            summary = self._clean_text(str(data.get("summary", "")))
+            summary = self._clean_summary(str(data.get("summary", "")))
             if not summary:
                 return fallback
             return {"summary": summary[:700], "generated_at": generated_at, "source": "openai"}
@@ -249,6 +255,25 @@ class DisplayTextService:
         cleaned = re.sub(r"<\s*sub\s*>(.*?)<\s*/\s*sub\s*>", r"\1", cleaned, flags=re.I)
         cleaned = re.sub(r"<[^>]+>", "", cleaned)
         cleaned = re.sub(r"\s+", " ", cleaned).strip(" \t\r\n\"'")
+        return cleaned
+
+    @classmethod
+    def _clean_summary(cls, text: str) -> str:
+        cleaned = cls._clean_text(text)
+        replacements = [
+            (
+                r"^The\s+[^.]{0,80}?\s+(?:shows|defines|indicates|reports|captures|contains|summarizes)\s+(?:that\s+)?",
+                "",
+            ),
+            (
+                r"^This\s+(?:artifact|JSON|section|report|log|plan|payload)\s+(?:shows|defines|indicates|reports|captures|contains|summarizes)\s+(?:that\s+)?",
+                "",
+            ),
+        ]
+        for pattern, replacement in replacements:
+            cleaned = re.sub(pattern, replacement, cleaned, count=1, flags=re.I)
+        if cleaned:
+            cleaned = cleaned[0].upper() + cleaned[1:]
         return cleaned
 
     @staticmethod

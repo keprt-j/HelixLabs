@@ -566,7 +566,12 @@ export default function App() {
             return (
               <div>
                 <h2 className="text-xl text-stone-900 mb-6">Prior Work & Novelty</h2>
-                <PriorWorkPanel priorWork={priorWork} negativeResults={negativeResults} />
+                <PriorWorkPanel
+                  priorWork={priorWork}
+                  negativeResults={negativeResults}
+                  valueScore={valueScore}
+                  artifactSummaries={artifactSummaries}
+                />
               </div>
             );
           case "claim-graph":
@@ -588,7 +593,6 @@ export default function App() {
                 <CompilerPanel
                   experimentIr={experimentIr}
                   feasibilityReport={feasibilityReport}
-                  valueScore={valueScore}
                   protocol={protocol}
                   artifactSummaries={artifactSummaries}
                 />

@@ -4,7 +4,6 @@ import { PipelineJsonInspector } from "./PipelineJsonInspector";
 interface CompilerPanelProps {
   experimentIr?: Record<string, unknown> | null;
   feasibilityReport?: Record<string, unknown> | null;
-  valueScore?: Record<string, unknown> | null;
   protocol?: Record<string, unknown> | null;
   artifactSummaries?: Record<string, unknown> | null;
 }
@@ -46,13 +45,11 @@ export function CompilerPanel({
   artifactSummaries,
   experimentIr,
   feasibilityReport,
-  valueScore,
   protocol,
 }: CompilerPanelProps) {
   const hasAny =
     (experimentIr && Object.keys(experimentIr).length > 0) ||
     (feasibilityReport && Object.keys(feasibilityReport).length > 0) ||
-    (valueScore && Object.keys(valueScore).length > 0) ||
     (protocol && Object.keys(protocol).length > 0);
 
   const issues = Array.isArray(feasibilityReport?.issues) ? (feasibilityReport!.issues as unknown[]) : [];
@@ -61,7 +58,7 @@ export function CompilerPanel({
   if (!hasAny) {
     return (
       <div className="rounded-lg border border-amber-200 bg-yellow-50/50 p-6 text-sm text-stone-600">
-        Planning artifacts (IR, feasibility, value, protocol) show here after you advance past the claim-graph stage.
+        Planning artifacts (IR, feasibility, protocol) show here after you advance past the claim-graph stage.
       </div>
     );
   }
@@ -72,7 +69,6 @@ export function CompilerPanel({
         <h3 className="text-sm text-stone-600 mb-2">Experiment compiler & planning</h3>
         <JsonBlock label="EXPERIMENT_IR" summaryKey="experiment_ir" data={experimentIr ?? undefined} artifactSummaries={artifactSummaries} />
         <JsonBlock label="FEASIBILITY_REPORT" summaryKey="feasibility_report" data={feasibilityReport ?? undefined} artifactSummaries={artifactSummaries} />
-        <JsonBlock label="VALUE_SCORE" summaryKey="value_score" data={valueScore ?? undefined} artifactSummaries={artifactSummaries} />
         <JsonBlock label="PROTOCOL" summaryKey="protocol" data={protocol ?? undefined} artifactSummaries={artifactSummaries} />
       </div>
 

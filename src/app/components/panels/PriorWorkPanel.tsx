@@ -1,4 +1,5 @@
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { PipelineJsonInspector } from "./PipelineJsonInspector";
 
 function asStringList(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
@@ -6,16 +7,29 @@ function asStringList(v: unknown): string[] {
 }
 
 interface PriorWorkPanelProps {
+  artifactSummaries?: Record<string, unknown> | null;
   priorWork?: Record<string, unknown> | null;
   negativeResults?: Record<string, unknown> | null;
+  valueScore?: Record<string, unknown> | null;
 }
 
-export function PriorWorkPanel({ priorWork, negativeResults }: PriorWorkPanelProps) {
+function summaryFor(artifactSummaries: Record<string, unknown> | null | undefined, key: string) {
+  const value = artifactSummaries?.[key];
+  if (!value || typeof value !== "object") return { summary: null, generatedAt: null };
+  const record = value as Record<string, unknown>;
+  return {
+    summary: typeof record.summary === "string" ? record.summary : null,
+    generatedAt: typeof record.generated_at === "string" ? record.generated_at : null,
+  };
+}
+
+export function PriorWorkPanel({ artifactSummaries, priorWork, negativeResults, valueScore }: PriorWorkPanelProps) {
   const novelty = typeof priorWork?.novelty_score === "number" ? priorWork.novelty_score : null;
   const redundancy = typeof priorWork?.redundancy_score === "number" ? priorWork.redundancy_score : null;
   const knownRuns = asStringList(priorWork?.known_runs);
   const gap = typeof priorWork?.gap === "string" ? priorWork.gap : "";
   const neg = Array.isArray(negativeResults?.negative_results) ? negativeResults!.negative_results : [];
+  const valueScoreSummary = summaryFor(artifactSummaries, "value_score");
 
   const hasPrior = priorWork && Object.keys(priorWork).length > 0;
 
@@ -96,6 +110,15 @@ export function PriorWorkPanel({ priorWork, negativeResults }: PriorWorkPanelPro
           </div>
         </div>
       </div>
+
+      {valueScore && Object.keys(valueScore).length > 0 ? (
+        <PipelineJsonInspector
+          title="VALUE_SCORE"
+          summary={valueScoreSummary.summary}
+          generatedAt={valueScoreSummary.generatedAt}
+          data={valueScore}
+        />
+      ) : null}
     </div>
   );
 }
