@@ -31,24 +31,19 @@ class DisplayTextService:
             return fallback
 
         try:
-            response = client.responses.create(
-                model=self._model,
-                input=(
-                    "You are editing scientific claim graph text for a hackathon dashboard. "
-                    "Return JSON only. Make the claims readable, specific, and plain text. "
-                    "Do not invent citations or unsupported facts. Strip HTML/subscript markup. "
-                    "Avoid token-list phrasing. Keep each statement under 220 characters.\n"
-                    f"User goal: {run.user_goal}\n"
-                    f"Current claim graph: {json.dumps(claim_graph)}\n"
-                    f"Context: {json.dumps(context)}\n"
-                    "Required JSON shape: "
-                    "{display_main_claim:string, display_weakest_claim:string, "
-                    "display_next_target:string, display_hypotheses:[{id,title,statement,rationale}]}"
-                ),
-                temperature=0.1,
-                max_output_tokens=900,
+            prompt = (
+                "You are editing scientific claim graph text for a hackathon dashboard. "
+                "Return JSON only. Make the claims readable, specific, and plain text. "
+                "Do not invent citations or unsupported facts. Strip HTML/subscript markup. "
+                "Avoid token-list phrasing. Keep each statement under 220 characters.\n"
+                f"User goal: {run.user_goal}\n"
+                f"Current claim graph: {json.dumps(claim_graph)}\n"
+                f"Context: {json.dumps(context)}\n"
+                "Required JSON shape: "
+                "{display_main_claim:string, display_weakest_claim:string, "
+                "display_next_target:string, display_hypotheses:[{id,title,statement,rationale}]}"
             )
-            data = self._json_object(response.output_text)
+            data = self._json_object(self._generate_text(client=client, prompt=prompt, temperature=0.1, max_tokens=900))
             return self._normalize_claim_display(data, fallback)
         except (APIError, ValueError, json.JSONDecodeError, TypeError):
             return fallback
@@ -75,24 +70,19 @@ class DisplayTextService:
                 {"event_type": event.event_type, "category": event.category, "message": event.message}
                 for event in run.provenance[-10:]
             ]
-            response = client.responses.create(
-                model=self._model,
-                input=(
-                    "You summarize HelixLabs pipeline JSON for judges. Return one JSON object only, with this exact shape: "
-                    "{\"summary\":\"...\"}. The summary must be specific to the provided JSON, not a generic status. "
-                    "Mention concrete values, artifacts, decisions, resources, result patterns, recommendations, or provenance "
-                    "counts that appear in the JSON. Explain what happened, why it matters, and what decision/output was produced. "
-                    "Use 2-4 concise sentences. Do not overclaim scientific validity.\n"
-                    f"Section: {section}\n"
-                    f"Run state: {run.state.value}\n"
-                    f"User goal: {run.user_goal}\n"
-                    f"Recent provenance: {json.dumps(provenance)}\n"
-                    f"Section JSON: {json.dumps(section_json, default=str)[:12000]}"
-                ),
-                temperature=0.2,
-                max_output_tokens=280,
+            prompt = (
+                "You summarize HelixLabs pipeline JSON for judges. Return one JSON object only, with this exact shape: "
+                "{\"summary\":\"...\"}. The summary must be specific to the provided JSON, not a generic status. "
+                "Mention concrete values, artifacts, decisions, resources, result patterns, recommendations, or provenance "
+                "counts that appear in the JSON. Explain what happened, why it matters, and what decision/output was produced. "
+                "Use 2-4 concise sentences. Do not overclaim scientific validity.\n"
+                f"Section: {section}\n"
+                f"Run state: {run.state.value}\n"
+                f"User goal: {run.user_goal}\n"
+                f"Recent provenance: {json.dumps(provenance)}\n"
+                f"Section JSON: {json.dumps(section_json, default=str)[:12000]}"
             )
-            data = self._json_object(response.output_text)
+            data = self._json_object(self._generate_text(client=client, prompt=prompt, temperature=0.2, max_tokens=280))
             summary = self._clean_text(str(data.get("summary", "")))
             if not summary:
                 return fallback
@@ -126,24 +116,19 @@ class DisplayTextService:
                 {"event_type": event.event_type, "category": event.category, "message": event.message}
                 for event in run.provenance[-8:]
             ]
-            response = client.responses.create(
-                model=self._model,
-                input=(
-                    "You summarize one HelixLabs JSON artifact for a dashboard. Return one JSON object only, "
-                    "with this exact shape: {\"summary\":\"...\"}. The summary must be specific to the artifact JSON. "
-                    "Mention concrete fields, counts, decisions, warnings, resource allocations, recovery choices, "
-                    "validation mappings, or result values that appear in the artifact. Use 1-3 concise sentences. "
-                    "Do not overclaim scientific validity.\n"
-                    f"Artifact name: {artifact_name}\n"
-                    f"Run state: {run.state.value}\n"
-                    f"User goal: {run.user_goal}\n"
-                    f"Recent provenance: {json.dumps(provenance)}\n"
-                    f"Artifact JSON: {json.dumps(artifact_json, default=str)[:10000]}"
-                ),
-                temperature=0.2,
-                max_output_tokens=240,
+            prompt = (
+                "You summarize one HelixLabs JSON artifact for a dashboard. Return one JSON object only, "
+                "with this exact shape: {\"summary\":\"...\"}. The summary must be specific to the artifact JSON. "
+                "Mention concrete fields, counts, decisions, warnings, resource allocations, recovery choices, "
+                "validation mappings, or result values that appear in the artifact. Use 1-3 concise sentences. "
+                "Do not overclaim scientific validity.\n"
+                f"Artifact name: {artifact_name}\n"
+                f"Run state: {run.state.value}\n"
+                f"User goal: {run.user_goal}\n"
+                f"Recent provenance: {json.dumps(provenance)}\n"
+                f"Artifact JSON: {json.dumps(artifact_json, default=str)[:10000]}"
             )
-            data = self._json_object(response.output_text)
+            data = self._json_object(self._generate_text(client=client, prompt=prompt, temperature=0.2, max_tokens=240))
             summary = self._clean_text(str(data.get("summary", "")))
             if not summary:
                 return fallback
@@ -155,6 +140,36 @@ class DisplayTextService:
         self._load_env_file()
         api_key = os.getenv("OPENAI_API_KEY", "").strip()
         return OpenAI(api_key=api_key) if api_key else None
+
+    def _generate_text(self, *, client: OpenAI, prompt: str, temperature: float, max_tokens: int) -> str:
+        responses_api = getattr(client, "responses", None)
+        if responses_api is not None:
+            response = responses_api.create(
+                model=self._model,
+                input=prompt,
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+            )
+            output_text = getattr(response, "output_text", None)
+            if isinstance(output_text, str) and output_text.strip():
+                return output_text.strip()
+
+        completion = client.chat.completions.create(
+            model=self._model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        message = completion.choices[0].message.content if completion.choices else ""
+        if isinstance(message, list):
+            parts: list[str] = []
+            for block in message:
+                if isinstance(block, dict):
+                    text = block.get("text")
+                    if isinstance(text, str) and text.strip():
+                        parts.append(text.strip())
+            return "\n".join(parts).strip()
+        return str(message or "").strip()
 
     @classmethod
     def _fallback_claim_graph(cls, claim_graph: dict[str, Any]) -> dict[str, Any]:

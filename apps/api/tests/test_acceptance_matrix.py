@@ -68,8 +68,8 @@ class AcceptanceMatrixTests(unittest.TestCase):
     def test_matrix(self):
         cases = [
             ("Optimize ionic conductivity for solid electrolytes while preserving phase stability", "chemistry_materials"),
-            ("Optimize online ad placement strategy to maximize weekly conversion under budget constraints", "generic_blackbox"),
-            ("Tune recommendation ranking to maximize click-through while controlling diversity drift", "generic_blackbox"),
+            ("Optimize online ad placement strategy to maximize weekly conversion under budget constraints", "adaptive_universal"),
+            ("Tune recommendation ranking to maximize click-through while controlling diversity drift", "adaptive_universal"),
         ]
         for i, (goal, expected_plugin) in enumerate(cases, start=1):
             run = self._run(goal, f"RUN-ACC-{i}")

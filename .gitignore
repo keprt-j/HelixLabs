@@ -8,3 +8,7 @@ dist/
 apps/api/.venv/
 apps/api/__pycache__/
 apps/api/.pytest_cache/
+**/__pycache__/
+*.py[cod]
+data/runtime/
+!data/runtime/.gitkeep

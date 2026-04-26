@@ -179,7 +179,7 @@ class PipelineGoldenTests(unittest.TestCase):
                 self.assertAlmostEqual(float(temps[idx]), float(m["temperature_c"]), places=6)
                 self.assertAlmostEqual(float(sigmas[idx]), float(m["sigma_S_cm_mean"]), places=6)
 
-    def test_generic_prompt_falls_back_and_still_emits_observable_artifacts(self):
+    def test_non_chemistry_prompt_uses_adaptive_universal_and_emits_observable_artifacts(self):
         orch = self._orchestrator()
         run = orch.create_run(
             run_id="RUN-TEST-GEN",
@@ -189,7 +189,7 @@ class PipelineGoldenTests(unittest.TestCase):
         self.assertIsNotNone(run)
         ir = (run.artifacts.get("experiment_ir") or {})
         plugin = ((ir.get("plugin") or {}).get("selected_plugin"))
-        self.assertEqual(plugin, "generic_blackbox")
+        self.assertEqual(plugin, "adaptive_universal")
         self.assertTrue((ir.get("ir_validation") or {}).get("is_valid"))
 
         final = self._run_to_completion(orch, run.run_id)
@@ -275,6 +275,39 @@ class PipelineGoldenTests(unittest.TestCase):
         ir = (run.artifacts.get("experiment_ir") or {})
         plugin = ((ir.get("plugin") or {}).get("selected_plugin"))
         self.assertEqual(plugin, "generic_blackbox")
+
+    def test_biomedical_goal_avoids_physical_axis_hallucinations(self):
+        orch = self._orchestrator()
+        run = orch.create_run(
+            run_id="RUN-TEST-BIO",
+            user_goal="Investigate OGG1 in Alzheimer's disease progression",
+        )
+        run = orch.advance(run.run_id)  # compile-ir
+        self.assertIsNotNone(run)
+        ir = (run.artifacts.get("experiment_ir") or {})
+        plugin = ((ir.get("plugin") or {}).get("selected_plugin"))
+        self.assertEqual(plugin, "adaptive_universal")
+        final = self._run_to_completion(orch, run.run_id)
+        execution = final.artifacts.get("execution_log") or {}
+        series = list(execution.get("series_for_charts") or [])
+        self.assertGreater(len(series), 0)
+        first = series[0] if isinstance(series[0], dict) else {}
+        x_label = str(first.get("x_label", "")).lower()
+        x_unit = str(first.get("x_unit", "")).lower()
+        self.assertNotIn("voltage", x_label)
+        self.assertNotIn(x_unit, {"v", "kpa", "c"})
+
+    def test_biomedical_hypothesis_is_not_token_list(self):
+        orch = self._orchestrator()
+        run = orch.create_run(
+            run_id="RUN-TEST-BIO-CLAIM",
+            user_goal="Investigate OGG1 in Alzheimer's disease progression",
+        )
+        claim_graph = run.pipeline.intake.claim_graph or {}
+        main_claim = str(claim_graph.get("main_claim") or "").lower()
+        self.assertIn("ogg1", main_claim)
+        self.assertNotIn("investigate, ogg1", main_claim)
+        self.assertNotIn("strongly influences the target outcome", main_claim)
 
 
 if __name__ == "__main__":

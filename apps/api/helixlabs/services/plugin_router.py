@@ -3,7 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from helixlabs.domain.models import RunRecord
-from helixlabs.services.plugins import ChemistryMaterialsPlugin, ExperimentPlugin, GenericBlackBoxPlugin
+from helixlabs.services.plugins import (
+    AdaptiveUniversalPlugin,
+    ChemistryMaterialsPlugin,
+    ExperimentPlugin,
+    GenericBlackBoxPlugin,
+)
 
 
 @dataclass
@@ -15,12 +20,16 @@ class PluginSelection:
 
 class PluginRouter:
     def __init__(self, plugins: list[ExperimentPlugin] | None = None) -> None:
-        self._plugins = plugins or [ChemistryMaterialsPlugin(), GenericBlackBoxPlugin()]
+        self._plugins = plugins or [ChemistryMaterialsPlugin(), AdaptiveUniversalPlugin(), GenericBlackBoxPlugin()]
 
     def select(self, run: RunRecord) -> PluginSelection:
         scores: list[tuple[ExperimentPlugin, float]] = []
         for p in self._plugins:
             scores.append((p, max(0.0, min(1.0, float(p.can_handle(run))))))
+        # Black-box fallback remains available by explicit override, but is excluded from default automatic selection.
+        selectable = [item for item in scores if item[0].plugin_id != "generic_blackbox"]
+        if selectable:
+            scores = selectable
         scores.sort(key=lambda x: x[1], reverse=True)
         plugin, score = scores[0]
         reason = f"Selected plugin '{plugin.plugin_id}' with confidence {score:.3f}"

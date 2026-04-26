@@ -64,13 +64,7 @@ class LiteratureSynthesizerService:
                 f"User goal: {user_goal}\n"
                 f"Studies: {json.dumps(top)}"
             )
-            response = client.responses.create(
-                model="gpt-4.1-mini",
-                input=prompt,
-                temperature=0.2,
-                max_output_tokens=500,
-            )
-            text = response.output_text.strip()
+            text = self._llm_text(client=client, prompt=prompt, temperature=0.2, max_tokens=500)
             data = json.loads(text)
             synthesis["source"] = "crossref+openai"
             synthesis["novelty_score"] = float(data.get("novelty_score", novelty_score))
@@ -94,27 +88,21 @@ class LiteratureSynthesizerService:
         for candidate in ranked:
             if time.monotonic() >= deadline:
                 break
+            if float(candidate.get("relevance", 0.0)) < 0.1:
+                # Do not surface weakly matched papers.
+                continue
             enriched = self._enrich_single_study(candidate=candidate, user_goal=user_goal, client=client)
             if enriched is None:
                 continue
             selected.append(enriched)
         if not selected:
             return selected
-        raw = [float(s.get("relevance", 0.0)) for s in selected]
-        lo, hi = min(raw), max(raw)
-        rank_targets = [0.95, 0.82, 0.68, 0.54, 0.40]
         for idx, study in enumerate(selected):
             val = float(study.get("relevance", 0.0))
-            if hi - lo < 1e-6:
-                normalized = 0.65
-            else:
-                normalized = 0.25 + 0.7 * ((val - lo) / (hi - lo))
-            target = rank_targets[min(idx, len(rank_targets) - 1)]
-            blended = 0.7 * target + 0.3 * normalized
-            study["relevance"] = round(max(0.0, min(1.0, blended)), 3)
-
-            title_sim = float(study.get("title_similarity", blended * 0.9))
-            study["similarity"] = round(max(0.0, min(1.0, 0.55 * title_sim + 0.45 * blended)), 3)
+            # Preserve actual lexical relevance; do not force score inflation by rank.
+            study["relevance"] = round(max(0.0, min(1.0, val)), 3)
+            title_sim = float(study.get("title_similarity", val))
+            study["similarity"] = round(max(0.0, min(1.0, 0.6 * title_sim + 0.4 * val)), 3)
         return selected
 
     def _enrich_single_study(
@@ -171,13 +159,7 @@ class LiteratureSynthesizerService:
                 f"Study title: {candidate.get('title', '')}\n"
                 f"Snippet: {snippet}"
             )
-            response = client.responses.create(
-                model="gpt-4.1-mini",
-                input=prompt,
-                temperature=0.2,
-                max_output_tokens=420,
-            )
-            raw = response.output_text.strip()
+            raw = self._llm_text(client=client, prompt=prompt, temperature=0.2, max_tokens=420)
             data = json.loads(raw)
             if isinstance(data, dict):
                 merged["methodology"] = self._conclude(str(data.get("methodology", merged["methodology"])), 150)
@@ -411,6 +393,8 @@ class LiteratureSynthesizerService:
 
     @staticmethod
     def _derive_claims(studies: list[dict[str, Any]], user_goal: str) -> dict[str, str]:
+        if LiteratureSynthesizerService._is_biomedical_goal(user_goal):
+            return LiteratureSynthesizerService._derive_biomedical_claims(studies=studies, user_goal=user_goal)
         goal_tokens = sorted(LiteratureSynthesizerService._tokens(user_goal))
         top = studies[0] if studies else {}
         secondary = studies[1] if len(studies) > 1 else {}
@@ -442,12 +426,119 @@ class LiteratureSynthesizerService:
         }
 
     @staticmethod
+    def _derive_biomedical_claims(studies: list[dict[str, Any]], user_goal: str) -> dict[str, str]:
+        g = user_goal.lower()
+        top = studies[0] if studies else {}
+        second = studies[1] if len(studies) > 1 else {}
+        top_text = f"{top.get('title', '')} {top.get('abstract', '')} {top.get('_evidence_text', '')}"
+        second_title = str(second.get("title", "")).strip()
+        target = LiteratureSynthesizerService._biomedical_target(user_goal, studies)
+        context = LiteratureSynthesizerService._biomedical_context(user_goal, top_text)
+        outcome = LiteratureSynthesizerService._biomedical_outcome(user_goal, top_text)
+        intervention = LiteratureSynthesizerService._biomedical_intervention(user_goal, top_text)
+
+        main_claim = (
+            f"Evidence from retrieved studies suggests that modulating {target} can change {outcome} in {context}."
+        )
+        weakest_claim = (
+            f"The effect size for {target} likely varies by cohort characteristics, disease stage, and intervention timing."
+        )
+        if second_title:
+            next_target = (
+                f"Next, run a stratified validation of {intervention} focused on {target} with endpoints for {outcome}, "
+                f"and compare against patterns in '{second_title[:72]}'."
+            )
+        else:
+            next_target = (
+                f"Next, run a stratified validation of {intervention} focused on {target} with endpoints for {outcome}."
+            )
+        if "t-cell exhaustion" in g or "t cell exhaustion" in g:
+            main_claim = (
+                "Evidence from retrieved studies suggests that reducing T-cell exhaustion can improve immunotherapy response."
+            )
+            weakest_claim = (
+                "The benefit may be limited to specific tumor microenvironments and baseline immune states."
+            )
+            next_target = (
+                "Next, test exhaustion-targeting combinations across responder subgroups using persistence and response endpoints."
+            )
+        return {
+            "main_claim": LiteratureSynthesizerService._conclude(main_claim, 180),
+            "weakest_claim": LiteratureSynthesizerService._conclude(weakest_claim, 180),
+            "next_target": LiteratureSynthesizerService._conclude(next_target, 180),
+        }
+
+    @staticmethod
     def _claim_anchor(anchor_tokens: list[str], goal_tokens: list[str]) -> str:
         candidates = [t for t in (anchor_tokens or goal_tokens) if re.match(r"^[a-zA-Z0-9][a-zA-Z0-9-]*$", t)]
         filtered = [t for t in candidates if t not in {"and", "or", "the", "for", "with"}]
         if not filtered:
             return "key controllable factors"
-        return ", ".join(filtered[:3])
+        if len(filtered) == 1:
+            return filtered[0]
+        return " and ".join(filtered[:2])
+
+    @staticmethod
+    def _biomedical_target(user_goal: str, studies: list[dict[str, Any]]) -> str:
+        gene = re.search(r"\b[A-Z0-9]{3,10}\b", user_goal)
+        if gene:
+            return gene.group(0)
+        text = " ".join(
+            [user_goal]
+            + [str(s.get("title", "")) for s in studies[:4]]
+            + [str(s.get("_evidence_text") or s.get("abstract", ""))[:400] for s in studies[:4]]
+        )
+        markers = [
+            r"\bt-cell exhaustion\b",
+            r"\bamyloid\b",
+            r"\btau\b",
+            r"\bmicroglia\b",
+            r"\binflammation\b",
+            r"\bbiomarker\b",
+            r"\bimmune checkpoint\b",
+        ]
+        for pat in markers:
+            m = re.search(pat, text, flags=re.I)
+            if m:
+                return m.group(0)
+        return "the proposed molecular target"
+
+    @staticmethod
+    def _biomedical_context(user_goal: str, evidence_text: str) -> str:
+        text = f"{user_goal} {evidence_text}".lower()
+        if "alzheimer" in text:
+            return "Alzheimer's disease"
+        if "immunotherapy" in text:
+            return "immunotherapy settings"
+        if "cancer" in text or "tumor" in text:
+            return "oncology cohorts"
+        if "neuro" in text or "dementia" in text:
+            return "neurodegenerative cohorts"
+        return "the target disease context"
+
+    @staticmethod
+    def _biomedical_outcome(user_goal: str, evidence_text: str) -> str:
+        text = f"{user_goal} {evidence_text}".lower()
+        if any(k in text for k in ("cognitive", "mmse", "adas-cog", "memory")):
+            return "cognitive outcomes"
+        if any(k in text for k in ("progression", "risk", "hazard", "incidence")):
+            return "disease progression risk"
+        if any(k in text for k in ("response", "survival", "remission")):
+            return "clinical response"
+        if any(k in text for k in ("biomarker", "amyloid", "tau")):
+            return "biomarker trajectories"
+        return "the primary clinical endpoint"
+
+    @staticmethod
+    def _biomedical_intervention(user_goal: str, evidence_text: str) -> str:
+        text = f"{user_goal} {evidence_text}".lower()
+        if "immunotherapy" in text:
+            return "immunotherapy regimen optimization"
+        if any(k in text for k in ("dose", "dosage", "mg")):
+            return "dose optimization"
+        if any(k in text for k in ("gene", "expression", "transcript")):
+            return "targeted expression modulation"
+        return "intervention tuning"
 
     @staticmethod
     def _polish_claim_text(text: str) -> str:
@@ -518,13 +609,7 @@ class LiteratureSynthesizerService:
                 f"Draft claims: {json.dumps(revised)}\n"
                 f"Studies: {json.dumps(studies)}"
             )
-            response = client.responses.create(
-                model="gpt-4.1-mini",
-                input=prompt,
-                temperature=0.1,
-                max_output_tokens=700,
-            )
-            data = json.loads(response.output_text.strip())
+            data = json.loads(self._llm_text(client=client, prompt=prompt, temperature=0.1, max_tokens=700))
             if isinstance(data, dict):
                 revised["main_claim"] = self._conclude(self._polish_claim_text(str(data.get("main_claim", revised["main_claim"]))), 180)
                 revised["weakest_claim"] = self._conclude(
@@ -544,42 +629,131 @@ class LiteratureSynthesizerService:
         return revised
 
     @staticmethod
+    def _llm_text(client: OpenAI, prompt: str, temperature: float, max_tokens: int) -> str:
+        responses_api = getattr(client, "responses", None)
+        if responses_api is not None:
+            response = responses_api.create(
+                model="gpt-4.1-mini",
+                input=prompt,
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+            )
+            output_text = getattr(response, "output_text", None)
+            if isinstance(output_text, str) and output_text.strip():
+                return output_text.strip()
+
+        completion = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        content = completion.choices[0].message.content if completion.choices else ""
+        if isinstance(content, list):
+            parts: list[str] = []
+            for block in content:
+                if isinstance(block, dict):
+                    text = block.get("text")
+                    if isinstance(text, str) and text.strip():
+                        parts.append(text.strip())
+            return "\n".join(parts).strip()
+        return str(content or "").strip()
+
+    @staticmethod
     def _extract_axis_hints(studies: list[dict[str, Any]], user_goal: str) -> dict[str, str]:
-        text = " ".join(
-            [user_goal]
-            + [str(s.get("title", "")) for s in studies[:8]]
-            + [str(s.get("abstract", ""))[:600] for s in studies[:8]]
-        ).lower()
-        x_label = "Input Variable"
-        x_unit = ""
-        y_label = "Response"
-        y_unit = ""
-        y_format = "float"
+        strong = [s for s in studies if float(s.get("relevance", 0.0)) >= 0.2]
+        goal_hints = LiteratureSynthesizerService._goal_conditioned_axis_hints(user_goal)
+        if not strong:
+            return goal_hints
+        evidence_docs = []
+        for s in strong[:8]:
+            title = str(s.get("title", ""))
+            # Prefer fulltext evidence chunks over abstract snippets for variable inference.
+            body = str(s.get("_evidence_text") or s.get("abstract", ""))[:1000]
+            evidence_docs.append(f"{title} {body}".lower())
+        text = " ".join([user_goal.lower(), *evidence_docs])
+        goal_lower = user_goal.lower()
+        x_label = str(goal_hints["x_label"])
+        x_unit = str(goal_hints["x_unit"])
+        y_label = str(goal_hints["y_label"])
+        y_unit = str(goal_hints["y_unit"])
+        y_format = str(goal_hints["y_format"])
+
+        def vote(pattern: str) -> int:
+            return sum(1 for doc in evidence_docs if re.search(pattern, doc))
+
+        def explicitly_requested(pattern: str) -> bool:
+            return bool(re.search(pattern, goal_lower))
+
+        biomedical_goal = LiteratureSynthesizerService._is_biomedical_goal(user_goal)
+        physical_requested = any(
+            term in goal_lower
+            for term in (
+                "temperature",
+                "thermal",
+                "pressure",
+                "voltage",
+                "current density",
+                "concentration",
+                "mol%",
+                "dwell",
+                "duration",
+                "time",
+            )
+        )
+
+        if biomedical_goal and not physical_requested:
+            bio_x_patterns = [
+                (r"\bogg1\b|\bgene expression\b|\bexpression\b|\btranscript\b|\bmethylation\b", ("Gene expression", "")),
+                (r"\bdose\b|\bdosage\b|\bmg\b|\bmg/kg\b", ("Dose", "mg")),
+                (r"\bage\b|\byears?\b", ("Age", "years")),
+                (r"\bgenotype\b|\ballele\b|\bvariant\b|\bmutation\b", ("Genotype status", "")),
+            ]
+            bio_y_patterns = [
+                (r"\balzheimer'?s?\b|\bdementia\b|\bcognitive\b|\bmmse\b|\badas-cog\b", ("Cognitive outcome", "score", "float")),
+                (r"\bamyloid\b|\btau\b|\bbiomarker\b|\bplaque\b", ("Biomarker level", "", "float")),
+                (r"\brisk\b|\bhazard\b|\bincidence\b|\bprogression\b", ("Disease risk", "%", "percent")),
+            ]
+            for pattern, meta in bio_x_patterns:
+                if vote(pattern) >= 1 or explicitly_requested(pattern):
+                    x_label, x_unit = meta
+                    break
+            for pattern, meta in bio_y_patterns:
+                if vote(pattern) >= 1 or explicitly_requested(pattern):
+                    y_label, y_unit, y_format = meta
+                    break
+            return {
+                "x_label": x_label,
+                "x_unit": x_unit,
+                "y_label": y_label,
+                "y_unit": y_unit,
+                "y_format": y_format,
+            }
 
         x_patterns = [
-            (r"temperature|thermal|heat", ("Temperature", "C")),
-            (r"time|duration|aging|hour", ("Time", "h")),
-            (r"pressure|bar|kpa|pa", ("Pressure", "kPa")),
-            (r"voltage|potential|bias", ("Voltage", "V")),
-            (r"current density|ma/cm2|a/cm2", ("Current density", "mA/cm2")),
-            (r"concentration|mol%|wt%|dop", ("Concentration", "mol%")),
+            (r"\btemperature\b|\bthermal\b|\bheat\b|\bcelsius\b|\b°c\b|\bkelvin\b", ("Temperature", "C")),
+            (r"\bdwell(?:\s*time)?\b|\bhold(?:\s*time)?\b|\btime\b|\bduration\b|\bhours?\b|\bmins?\b", ("Time", "h")),
+            (r"\bpressure\b|\bbar\b|\bkpa\b|\bpa\b|\bpsi\b", ("Pressure", "kPa")),
+            (r"\bvoltage\b|\bpotential\b|\bbias\b|\bmv\b|\bkv\b", ("Voltage", "V")),
+            (r"\bcurrent density\b|\bma/cm2\b|\ba/cm2\b", ("Current density", "mA/cm2")),
+            (r"\bconcentration\b|\bmol%\b|\bwt%\b|\bdop(?:ing|ant)?\b", ("Concentration", "mol%")),
             (r"ph\\b", ("pH", "")),
         ]
         y_patterns = [
-            (r"conductiv|sigma\\b|s/cm", ("Conductivity", "S/cm", "scientific")),
-            (r"yield|conversion|efficiency|percent|%", ("Yield", "%", "percent")),
-            (r"capacity|mah/g|ah/kg", ("Capacity", "mAh/g", "float")),
-            (r"strength|mpa|modulus", ("Strength", "MPa", "float")),
-            (r"score|objective|accuracy", ("Objective score", "", "float")),
-            (r"cost|usd|\\$", ("Cost", "USD", "currency")),
+            (r"\bconductiv\w*\b|\bsigma\b|\bs/cm\b", ("Conductivity", "S/cm", "scientific")),
+            (r"\byield\b|\bconversion\b|\befficiency\b|\bpercent\b|(?<!\w)%(?!\w)", ("Yield", "%", "percent")),
+            (r"\bcapacity\b|\bmah/g\b|\bah/kg\b", ("Capacity", "mAh/g", "float")),
+            (r"\bstrength\b|\bmpa\b|\bmodulus\b", ("Strength", "MPa", "float")),
+            (r"\bscore\b|\bobjective\b|\baccuracy\b", ("Objective score", "", "float")),
+            (r"\bcost\b|\busd\b|\$", ("Cost", "USD", "currency")),
         ]
 
         for pattern, meta in x_patterns:
-            if re.search(pattern, text):
+            if vote(pattern) >= 2 or explicitly_requested(pattern):
                 x_label, x_unit = meta
                 break
         for pattern, meta in y_patterns:
-            if re.search(pattern, text):
+            if vote(pattern) >= 2 or explicitly_requested(pattern):
                 y_label, y_unit, y_format = meta
                 break
         return {
@@ -594,6 +768,17 @@ class LiteratureSynthesizerService:
     def _fallback(user_goal: str, reason: str) -> dict[str, Any]:
         goal_tokens = sorted(LiteratureSynthesizerService._tokens(user_goal))
         anchor = ", ".join(goal_tokens[:3]) if goal_tokens else "the requested objective"
+        fallback_main = f"Available priors suggest {anchor} may improve under tuned operating settings."
+        fallback_weak = "Robustness of gains outside reported ranges remains uncertain."
+        fallback_next = "Execute boundary-condition sweeps to verify robustness and identify failure regions."
+        if LiteratureSynthesizerService._is_biomedical_goal(user_goal):
+            target = LiteratureSynthesizerService._biomedical_target(user_goal, [])
+            context = LiteratureSynthesizerService._biomedical_context(user_goal, "")
+            outcome = LiteratureSynthesizerService._biomedical_outcome(user_goal, "")
+            intervention = LiteratureSynthesizerService._biomedical_intervention(user_goal, "")
+            fallback_main = f"Retrieved priors suggest that modulating {target} may alter {outcome} in {context}."
+            fallback_weak = "The effect may vary across cohorts, disease stage, and baseline clinical risk."
+            fallback_next = f"Run a stratified pilot to test {intervention} around {target} with explicit clinical endpoints."
         return {
             "source": "fallback",
             "reason": reason,
@@ -655,15 +840,57 @@ class LiteratureSynthesizerService:
             ],
             "novelty_score": 7.2,
             "redundancy_score": 3.1,
-            "main_claim": f"Available priors suggest {anchor} may improve under tuned operating settings.",
-            "weakest_claim": "Robustness of gains outside reported ranges remains uncertain.",
-            "next_target": "Execute boundary-condition sweeps to verify robustness and identify failure regions.",
-            "axis_hints": {
-                "x_label": "Concentration",
-                "x_unit": "mol%",
-                "y_label": "Conductivity",
-                "y_unit": "S/cm",
-                "y_format": "scientific",
-            },
+            "main_claim": LiteratureSynthesizerService._conclude(fallback_main, 180),
+            "weakest_claim": LiteratureSynthesizerService._conclude(fallback_weak, 180),
+            "next_target": LiteratureSynthesizerService._conclude(fallback_next, 180),
+            "axis_hints": LiteratureSynthesizerService._goal_conditioned_axis_hints(user_goal),
             "goal_echo": user_goal,
+        }
+
+    @staticmethod
+    def _is_biomedical_goal(user_goal: str) -> bool:
+        g = user_goal.lower()
+        return any(
+            k in g
+            for k in (
+                "alzheimer",
+                "dementia",
+                "neurolog",
+                "neuro",
+                "gene",
+                "genom",
+                "biomarker",
+                "clinical",
+                "patient",
+                "cohort",
+                "mutation",
+                "protein",
+                "ogg1",
+            )
+        )
+
+    @staticmethod
+    def _goal_conditioned_axis_hints(user_goal: str) -> dict[str, str]:
+        g = user_goal.lower()
+        gene_match = re.search(r"\b[A-Z0-9]{3,10}\b", user_goal)
+        x_label = "Input Variable"
+        x_unit = ""
+        y_label = "Response"
+        y_unit = ""
+        y_format = "float"
+        if gene_match:
+            x_label = f"{gene_match.group(0)} expression"
+        if any(k in g for k in ("alzheimer", "dementia", "cognitive", "neuro")):
+            y_label = "Cognitive outcome"
+            y_unit = "score"
+        elif any(k in g for k in ("risk", "hazard", "incidence")):
+            y_label = "Risk"
+            y_unit = "%"
+            y_format = "percent"
+        return {
+            "x_label": x_label,
+            "x_unit": x_unit,
+            "y_label": y_label,
+            "y_unit": y_unit,
+            "y_format": y_format,
         }

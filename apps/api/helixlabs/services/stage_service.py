@@ -154,6 +154,25 @@ class StageService:
         top_entities = list(dict.fromkeys(tokens[:8])) or ["input_factor", "response_metric"]
         if any(k in g for k in ("electrolyte", "conductivity", "dop", "phase", "battery", "chem")):
             domain = "chemistry_materials"
+        elif any(
+            k in g
+            for k in (
+                "alzheimer",
+                "dementia",
+                "neurolog",
+                "neuro",
+                "gene",
+                "genom",
+                "biomarker",
+                "clinical",
+                "patient",
+                "cohort",
+                "mutation",
+                "protein",
+                "ogg1",
+            )
+        ):
+            domain = "biomedical_research"
         elif any(k in g for k in ("ad", "ctr", "conversion", "ranking", "pricing", "funnel")):
             domain = "digital_optimization"
         else:
