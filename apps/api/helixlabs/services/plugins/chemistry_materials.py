@@ -31,7 +31,9 @@ class ChemistryMaterialsPlugin(ExperimentPlugin):
         hits = sum(1 for k in keys if k in text)
         if hits == 0:
             return 0.08
-        return min(1.0, 0.22 + hits * 0.14)
+        if hits == 1:
+            return 0.28
+        return min(1.0, 0.18 + hits * 0.12)
 
     def compile_ir(self, run: RunRecord) -> dict[str, Any]:
         design, meta = design_experiment_matrix(run)
@@ -131,7 +133,22 @@ class ChemistryMaterialsPlugin(ExperimentPlugin):
         studies = list(run.pipeline.intake.literature.get("studies") or [])
         fp = literature_fingerprint(studies, run.user_goal)
         measurements = run_measurements(run, design, fp) if design else []
-        return execution_payload(run, design, measurements, fp)
+        payload = execution_payload(run, design, measurements, fp)
+        axis_hints = dict((run.pipeline.intake.literature or {}).get("axis_hints") or {})
+        series_list = list(payload.get("series_for_charts") or [])
+        if series_list and isinstance(series_list[0], dict):
+            series = dict(series_list[0])
+            series["x_label"] = str(axis_hints.get("x_label") or "Temperature")
+            series["x_unit"] = str(axis_hints.get("x_unit") or "C")
+            series["y_label"] = str(axis_hints.get("y_label") or "Conductivity")
+            series["y_unit"] = str(axis_hints.get("y_unit") or "S/cm")
+            series["y_format"] = str(axis_hints.get("y_format") or "scientific")
+            series["x_key"] = "temperature_c"
+            series["y_key"] = "sigma_S_cm"
+            payload["series_for_charts"] = [series]
+        payload["plugin_fidelity"] = "medium"
+        payload["origin"] = "simulated"
+        return payload
 
     def recover(self, run: RunRecord, execution_log: dict[str, Any]) -> dict[str, Any]:
         measurements = list(execution_log.get("measurements") or [])

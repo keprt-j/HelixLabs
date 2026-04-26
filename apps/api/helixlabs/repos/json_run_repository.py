@@ -23,3 +23,13 @@ class JsonRunRepository:
         if not path.exists():
             return None
         return RunRecord.model_validate(json.loads(path.read_text(encoding="utf-8")))
+
+    def list_runs(self, limit: int = 100) -> list[RunRecord]:
+        files = sorted(self._runtime_dir.glob("RUN-*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        out: list[RunRecord] = []
+        for p in files[: max(1, limit)]:
+            try:
+                out.append(RunRecord.model_validate(json.loads(p.read_text(encoding="utf-8"))))
+            except Exception:
+                continue
+        return out

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import re
 from typing import Any
 
 from helixlabs.domain.models import ExperimentIR, RunRecord
@@ -11,32 +12,91 @@ def _seed(run: RunRecord) -> int:
     return abs(hash((run.run_id, run.user_goal))) % (2**31)
 
 
+def _sim_overrides(run: RunRecord) -> dict[str, Any]:
+    v = run.artifacts.get("simulation_overrides")
+    return v if isinstance(v, dict) else {}
+
+
+def _sample_budget(run: RunRecord) -> int:
+    density = str(_sim_overrides(run).get("design_density", "medium")).lower()
+    if density == "coarse":
+        return 16
+    if density == "fine":
+        return 40
+    return 24
+
+
+def _replicates(run: RunRecord) -> int:
+    raw = _sim_overrides(run).get("n_replicates", 1)
+    try:
+        return max(1, min(20, int(raw)))
+    except (TypeError, ValueError):
+        return 1
+
+
+def _axis_hints(run: RunRecord) -> dict[str, str]:
+    lit = run.pipeline.intake.literature or {}
+    hints = lit.get("axis_hints")
+    return hints if isinstance(hints, dict) else {}
+
+
+def _slug(name: str, fallback: str) -> str:
+    tokens = re.findall(r"[a-zA-Z0-9]+", name.lower())
+    if not tokens:
+        return fallback
+    return "_".join(tokens[:3])
+
+
 class GenericBlackBoxPlugin(ExperimentPlugin):
     plugin_id = "generic_blackbox"
 
     def can_handle(self, run: RunRecord) -> float:
-        return 0.35
+        return 0.4
 
     def compile_ir(self, run: RunRecord) -> dict[str, Any]:
         rng = random.Random(_seed(run))
-        n_points = 24
-        design = [{"x1": round(i / 23, 4), "x2": round(rng.random(), 4)} for i in range(n_points)]
+        n_points = _sample_budget(run)
+        denom = max(1, n_points - 1)
+        design = [{"x1": round(i / denom, 4), "x2": round(rng.random(), 4)} for i in range(n_points)]
+        hints = _axis_hints(run)
+        x_label = str(hints.get("x_label") or "Input Variable")
+        y_label = str(hints.get("y_label") or "Response")
+        x_unit = str(hints.get("x_unit") or "")
+        y_unit = str(hints.get("y_unit") or "")
+        y_key = _slug(y_label, "response_metric")
         ir = ExperimentIR(
             version="1.0",
             domain_hint="generic",
             hypothesis={
                 "statement": run.pipeline.intake.claim_graph.get("main_claim")
                 or "Unknown response may improve in a bounded region of the factor space.",
-                "confidence": 0.35,
+                "confidence": 0.42,
                 "source_refs": [],
             },
             factors=[
-                {"name": "x1", "type": "continuous", "bounds": {"min": 0.0, "max": 1.0}, "levels": [0.0, 0.25, 0.5, 0.75, 1.0]},
-                {"name": "x2", "type": "continuous", "bounds": {"min": 0.0, "max": 1.0}, "levels": [0.0, 0.25, 0.5, 0.75, 1.0]},
+                {
+                    "name": _slug(x_label, "x1"),
+                    "type": "continuous",
+                    "units": x_unit or None,
+                    "bounds": {"min": 0.0, "max": 1.0},
+                    "levels": [0.0, 0.25, 0.5, 0.75, 1.0],
+                },
+                {
+                    "name": "auxiliary_factor",
+                    "type": "continuous",
+                    "bounds": {"min": 0.0, "max": 1.0},
+                    "levels": [0.0, 0.25, 0.5, 0.75, 1.0],
+                },
             ],
-            responses=[{"name": "objective_score", "objective": "maximize"}],
+            responses=[{"name": y_key, "objective": "maximize", "units": y_unit or None}],
             constraints=[{"expression": "0 <= x1 <= 1 and 0 <= x2 <= 1", "severity": "hard"}],
-            design={"strategy": "latin_hypercube_like", "sample_budget": n_points, "replicates": 1, "random_seed": _seed(run), "noise_model": "gaussian"},
+            design={
+                "strategy": "latin_hypercube_like",
+                "sample_budget": n_points,
+                "replicates": _replicates(run),
+                "random_seed": _seed(run),
+                "noise_model": "gaussian",
+            },
             procedure_steps=[
                 {"id": "sample", "name": "sample design points", "expected_outputs": ["design_points"]},
                 {"id": "evaluate", "name": "evaluate black-box objective", "expected_outputs": ["observations"]},
@@ -55,7 +115,11 @@ class GenericBlackBoxPlugin(ExperimentPlugin):
                 "fidelity": "low",
                 "note": "Generic fallback plugin used due to low domain match confidence.",
             },
-            "literature_fingerprint": {"mean_relevance": 0.0, "n_studies": 0, "top_tokens": []},
+            "literature_fingerprint": {
+                "mean_relevance": float((run.pipeline.intake.prior_work or {}).get("novelty_score", 5.0)) / 10.0,
+                "n_studies": len(list((run.pipeline.intake.literature or {}).get("studies") or [])),
+                "top_tokens": list((run.pipeline.intake.parsed_goal or {}).get("entities") or [])[:6],
+            },
         }
 
     def validate_feasibility(self, run: RunRecord, experiment_ir_artifact: dict[str, Any]) -> dict[str, Any]:
@@ -69,11 +133,16 @@ class GenericBlackBoxPlugin(ExperimentPlugin):
         }
 
     def score_value(self, run: RunRecord, experiment_ir_artifact: dict[str, Any]) -> dict[str, Any]:
+        n = len(experiment_ir_artifact.get("design_matrix") or [])
+        rep = _replicates(run)
+        novelty = max(2.0, min(9.5, 8.0 - n / 12.0))
+        eig = max(0.25, min(0.9, 0.35 + (n / 50.0) + (rep - 1) * 0.04))
+        overall = max(0.3, min(0.9, 0.45 + eig * 0.35))
         return {
-            "redundancy_score": 5.0,
-            "novelty_score": 6.0,
-            "expected_information_gain": 0.62,
-            "overall_experiment_value": 0.58,
+            "redundancy_score": round(10.0 - novelty, 2),
+            "novelty_score": round(novelty, 2),
+            "expected_information_gain": round(eig, 3),
+            "overall_experiment_value": round(overall, 3),
             "plugin_fidelity": "low",
         }
 
@@ -87,13 +156,19 @@ class GenericBlackBoxPlugin(ExperimentPlugin):
 
     def schedule(self, run: RunRecord, experiment_ir_artifact: dict[str, Any]) -> dict[str, Any]:
         n = len(experiment_ir_artifact.get("design_matrix") or [])
+        rep = _replicates(run)
+        noise = float(_sim_overrides(run).get("noise_scale_relative", 0.06))
+        hours_per = 0.04 + rep * 0.025 + noise * 0.1
+        total = round(1.2 + n * hours_per, 2)
+        util = min(90, round(45 + n / 2))
+        idle = round(max(0.6, total * 0.15), 2)
         return {
             "schedule_id": f"SCH-{run.run_id}",
-            "total_duration_hours": round(2.0 + n * 0.06, 2),
-            "resource_utilization_pct": 54,
-            "idle_time_hours": 1.3,
+            "total_duration_hours": total,
+            "resource_utilization_pct": util,
+            "idle_time_hours": idle,
             "design_points": n,
-            "hours_per_design_point": 0.06,
+            "hours_per_design_point": round(hours_per, 3),
         }
 
     def execute(self, run: RunRecord, experiment_ir_artifact: dict[str, Any]) -> dict[str, Any]:
@@ -106,12 +181,23 @@ class GenericBlackBoxPlugin(ExperimentPlugin):
             score = max(0.0, min(1.0, 0.8 - ((x1 - 0.62) ** 2 + (x2 - 0.38) ** 2) + rng.gauss(0, 0.03)))
             measurements.append({"design_index": i, "x1": x1, "x2": x2, "objective_score": round(score, 6)})
         by_x1 = sorted(measurements, key=lambda m: m["x1"])
+        hints = _axis_hints(run)
+        x_label = str(hints.get("x_label") or "Input Variable")
+        y_label = str(hints.get("y_label") or "Response")
+        x_unit = str(hints.get("x_unit") or "")
+        y_unit = str(hints.get("y_unit") or "")
+        y_format = str(hints.get("y_format") or "float")
         series = {
-            "label": "Objective score vs x1",
+            "label": f"{y_label} vs {x_label}",
             "x": [round(m["x1"], 4) for m in by_x1],
             "y": [m["objective_score"] for m in by_x1],
-            "x_label": "x1",
-            "y_label": "objective_score",
+            "x_label": x_label,
+            "y_label": y_label,
+            "x_unit": x_unit,
+            "y_unit": y_unit,
+            "y_format": y_format,
+            "x_key": "x",
+            "y_key": "y",
         }
         return {
             "status": "completed",
@@ -122,6 +208,7 @@ class GenericBlackBoxPlugin(ExperimentPlugin):
             "series_for_charts": [series],
             "recovery_hint": None,
             "plugin_fidelity": "low",
+            "origin": "simulated",
         }
 
     def recover(self, run: RunRecord, execution_log: dict[str, Any]) -> dict[str, Any]:
@@ -129,9 +216,12 @@ class GenericBlackBoxPlugin(ExperimentPlugin):
 
     def validate_results(self, run: RunRecord, execution_log: dict[str, Any]) -> dict[str, Any]:
         n = len(execution_log.get("measurements") or [])
+        hints = _axis_hints(run)
+        x_label = _slug(str(hints.get("x_label") or "x"), "x")
+        y_label = _slug(str(hints.get("y_label") or "response"), "response")
         return {
             "validation_status": "repaired" if n else "skipped",
-            "mapped_columns": {"x1": "factor_1", "x2": "factor_2", "objective_score": "response"},
+            "mapped_columns": {"x1": x_label, "x2": "auxiliary_factor", "objective_score": y_label},
             "validated_records": n,
         }
 
@@ -148,11 +238,13 @@ class GenericBlackBoxPlugin(ExperimentPlugin):
 
     def recommend_next(self, run: RunRecord, execution_log: dict[str, Any]) -> dict[str, Any]:
         m = list(execution_log.get("measurements") or [])
+        hints = _axis_hints(run)
+        x_label = str(hints.get("x_label") or "primary variable")
         if not m:
             return {"recommendation": "Increase sample budget and rerun generic sweep.", "expected_information_gain": 0.3, "risk_level": 0.5}
         best = max(m, key=lambda x: float(x.get("objective_score", 0.0)))
         return {
-            "recommendation": f"Refine search near x1={best.get('x1')}, x2={best.get('x2')} with denser local sampling.",
+            "recommendation": f"Refine search near {x_label}={best.get('x1')} with denser local sampling and local sensitivity checks.",
             "expected_information_gain": 0.55,
             "risk_level": 0.42,
         }

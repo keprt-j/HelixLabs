@@ -1,4 +1,11 @@
-import type { HelixRun } from "../types/run";
+import type { HelixRun, RunListItem } from "../types/run";
+
+export type SimulationOverrides = {
+  n_replicates?: number;
+  noise_scale_relative?: number;
+  design_density?: "coarse" | "medium" | "fine";
+  seed?: number;
+};
 
 export function getApiBase(): string {
   return (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://127.0.0.1:8000";
@@ -13,12 +20,18 @@ async function parseJson<T>(res: Response): Promise<T> {
   }
 }
 
-export async function createRun(userGoal: string): Promise<{ run_id: string; state: string }> {
+export async function createRun(
+  userGoal: string,
+  opts: { simulationOverrides?: SimulationOverrides } = {},
+): Promise<{ run_id: string; state: string }> {
   const base = getApiBase();
   const res = await fetch(`${base}/api/runs`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_goal: userGoal }),
+    body: JSON.stringify({
+      user_goal: userGoal,
+      simulation_overrides: opts.simulationOverrides,
+    }),
   });
   if (!res.ok) {
     throw new Error(`Unable to create run (${res.status})`);
@@ -37,6 +50,16 @@ export async function fetchRun(runId: string): Promise<HelixRun> {
     throw new Error("Run payload missing");
   }
   return data.run;
+}
+
+export async function fetchRunList(limit = 50): Promise<RunListItem[]> {
+  const base = getApiBase();
+  const res = await fetch(`${base}/api/runs?limit=${encodeURIComponent(String(limit))}`);
+  if (!res.ok) {
+    throw new Error(`Unable to list runs (${res.status})`);
+  }
+  const data = await parseJson<{ runs: RunListItem[] }>(res);
+  return Array.isArray(data?.runs) ? data.runs : [];
 }
 
 export async function advanceRun(runId: string): Promise<HelixRun> {
@@ -77,6 +100,30 @@ export async function fetchReportRun(runId: string): Promise<HelixRun> {
   const res = await fetch(`${base}/api/runs/${encodeURIComponent(runId)}/report`);
   if (!res.ok) {
     throw new Error(`Report not available (${res.status})`);
+  }
+  const data = await parseJson<{ run: HelixRun }>(res);
+  return data.run;
+}
+
+export async function setRunSimulationOverrides(runId: string, simulationOverrides: SimulationOverrides): Promise<HelixRun> {
+  const base = getApiBase();
+  const res = await fetch(`${base}/api/runs/${encodeURIComponent(runId)}/simulation-overrides`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ simulation_overrides: simulationOverrides }),
+  });
+  if (!res.ok) {
+    throw new Error(`Unable to set simulation overrides (${res.status})`);
+  }
+  const data = await parseJson<{ run: HelixRun }>(res);
+  return data.run;
+}
+
+export async function replanRun(runId: string): Promise<HelixRun> {
+  const base = getApiBase();
+  const res = await fetch(`${base}/api/runs/${encodeURIComponent(runId)}/replan`, { method: "POST" });
+  if (!res.ok) {
+    throw new Error(`Unable to replan run (${res.status})`);
   }
   const data = await parseJson<{ run: HelixRun }>(res);
   return data.run;

@@ -10,7 +10,10 @@ from helixlabs.api.schemas import (
     EventsResponse,
     RunCreateRequest,
     RunDetailResponse,
+    RunListItem,
+    RunListResponse,
     RunSummaryResponse,
+    SimulationOverridesRequest,
     StageResponse,
 )
 from helixlabs.core.dependencies import orchestrator
@@ -27,8 +30,23 @@ def health() -> dict[str, str]:
 @router.post("/runs", response_model=RunSummaryResponse)
 def create_run(payload: RunCreateRequest) -> RunSummaryResponse:
     run_id = f"RUN-{datetime.now(tz=timezone.utc).strftime('%Y%m%d%H%M%S%f')}"
-    run = orchestrator.create_run(run_id=run_id, user_goal=payload.user_goal)
+    run = orchestrator.create_run(
+        run_id=run_id,
+        user_goal=payload.user_goal,
+        plugin_override=payload.plugin_override,
+        simulation_overrides=payload.simulation_overrides,
+    )
     return RunSummaryResponse(run_id=run.run_id, state=run.state, summary="Run created and intake completed")
+
+
+@router.get("/runs", response_model=RunListResponse)
+def list_runs(limit: int = 50) -> RunListResponse:
+    runs = orchestrator.list_runs(limit=max(1, min(200, limit)))
+    items = [
+        RunListItem(run_id=r.run_id, state=r.state, user_goal=r.user_goal, updated_at=r.updated_at)
+        for r in runs
+    ]
+    return RunListResponse(runs=items)
 
 
 @router.get("/runs/{run_id}", response_model=RunDetailResponse)
@@ -62,6 +80,25 @@ def approve_run(run_id: str, payload: ApproveRequest) -> StageResponse:
     if run.state != RunState.APPROVED:
         raise HTTPException(status_code=409, detail="Run is not awaiting human approval")
     return StageResponse(run=run, stage="approve", message="Approval event recorded")
+
+
+@router.post("/runs/{run_id}/simulation-overrides", response_model=RunDetailResponse)
+def set_simulation_overrides(run_id: str, payload: SimulationOverridesRequest) -> RunDetailResponse:
+    run = orchestrator.set_simulation_overrides(run_id, payload.simulation_overrides)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return RunDetailResponse(run=run)
+
+
+@router.post("/runs/{run_id}/replan", response_model=RunDetailResponse)
+def replan(run_id: str) -> RunDetailResponse:
+    try:
+        run = orchestrator.replan(run_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return RunDetailResponse(run=run)
 
 
 @router.get("/runs/{run_id}/report", response_model=RunDetailResponse)

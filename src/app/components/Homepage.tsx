@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { ArrowRight, Beaker, Cpu, Loader2, Network, Search } from "lucide-react";
+import { Beaker, Cpu, Loader2, Network, Search } from "lucide-react";
 import { HelixAnimation } from "./HelixAnimation";
 
 interface HomepageProps {

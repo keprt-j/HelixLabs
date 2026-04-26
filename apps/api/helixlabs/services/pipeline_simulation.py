@@ -27,6 +27,23 @@ def simulation_seed(run_id: str, user_goal: str) -> int:
     return int.from_bytes(raw[:4], "big") % (2**31)
 
 
+def _sim_overrides(run: RunRecord) -> dict[str, Any]:
+    v = run.artifacts.get("simulation_overrides")
+    if isinstance(v, dict):
+        return v
+    return {}
+
+
+def simulation_seed_for_run(run: RunRecord) -> int:
+    overrides = _sim_overrides(run)
+    candidate = overrides.get("seed")
+    if isinstance(candidate, int):
+        return int(candidate) % (2**31)
+    if isinstance(candidate, str) and candidate.strip().isdigit():
+        return int(candidate.strip()) % (2**31)
+    return simulation_seed(run.run_id, run.user_goal)
+
+
 def noise_scale_default() -> float:
     v = os.getenv("HELIX_SIM_NOISE", "0.06").strip()
     try:
@@ -35,12 +52,46 @@ def noise_scale_default() -> float:
         return 0.06
 
 
+def noise_scale_for_run(run: RunRecord) -> float:
+    overrides = _sim_overrides(run)
+    candidate = overrides.get("noise_scale_relative")
+    if isinstance(candidate, (int, float)):
+        return max(0.0, min(0.25, float(candidate)))
+    if isinstance(candidate, str):
+        try:
+            return max(0.0, min(0.25, float(candidate.strip())))
+        except ValueError:
+            return noise_scale_default()
+    return noise_scale_default()
+
+
 def n_replicates_default() -> int:
     v = os.getenv("HELIX_SIM_N_REPLICATES", "1").strip()
     try:
         return max(1, min(20, int(v)))
     except ValueError:
         return 1
+
+
+def n_replicates_for_run(run: RunRecord) -> int:
+    overrides = _sim_overrides(run)
+    candidate = overrides.get("n_replicates")
+    if isinstance(candidate, int):
+        return max(1, min(20, int(candidate)))
+    if isinstance(candidate, str):
+        try:
+            return max(1, min(20, int(candidate.strip())))
+        except ValueError:
+            return n_replicates_default()
+    return n_replicates_default()
+
+
+def design_density_for_run(run: RunRecord) -> str:
+    overrides = _sim_overrides(run)
+    v = str(overrides.get("design_density", "medium")).strip().lower()
+    if v in {"coarse", "medium", "fine"}:
+        return v
+    return "medium"
 
 
 def literature_fingerprint(studies: list[dict[str, Any]], user_goal: str) -> dict[str, Any]:
@@ -91,12 +142,13 @@ def build_simulation_config(run: RunRecord) -> dict[str, Any]:
     lit = run.pipeline.intake.literature or {}
     studies = list(lit.get("studies") or [])
     fp = literature_fingerprint(studies, run.user_goal)
-    seed = simulation_seed(run.run_id, run.user_goal)
+    seed = simulation_seed_for_run(run)
     return {
         "version": 1,
         "seed": seed,
-        "noise_scale_relative": noise_scale_default(),
-        "n_replicates": n_replicates_default(),
+        "noise_scale_relative": noise_scale_for_run(run),
+        "n_replicates": n_replicates_for_run(run),
+        "design_density": design_density_for_run(run),
         "literature_signal_strength": round(fp["mean_relevance"], 4),
         "n_source_studies": fp["n_studies"],
         "study_refs": fp["study_refs"],
@@ -151,8 +203,13 @@ def design_experiment_matrix(run: RunRecord) -> tuple[list[dict[str, Any]], dict
     lit = run.pipeline.intake.literature or {}
     studies = list(lit.get("studies") or [])
     fp = literature_fingerprint(studies, run.user_goal)
-    rng = random.Random(simulation_seed(run.run_id, run.user_goal))
+    rng = random.Random(simulation_seed_for_run(run))
     n_levels = 5 + int(fp["mean_relevance"] * 4)  # 5–8 conditions along composition
+    density = design_density_for_run(run)
+    if density == "coarse":
+        n_levels = max(4, n_levels - 1)
+    elif density == "fine":
+        n_levels = min(10, n_levels + 2)
     fracs = _fraction_grid(n_levels, fp, rng)
     temps = _temperature_grid(run.user_goal, fp)
     rows: list[dict[str, Any]] = []
@@ -186,10 +243,10 @@ def _sigma(
 
 
 def run_measurements(run: RunRecord, design: list[dict[str, Any]], fp: dict[str, Any]) -> list[dict[str, Any]]:
-    seed = simulation_seed(run.run_id, run.user_goal)
+    seed = simulation_seed_for_run(run)
     rng = random.Random(seed)
-    noise = noise_scale_default()
-    n_rep = n_replicates_default()
+    noise = noise_scale_for_run(run)
+    n_rep = n_replicates_for_run(run)
     p = _model_params(fp, rng)
     rows: list[dict[str, Any]] = []
     for idx, point in enumerate(design):

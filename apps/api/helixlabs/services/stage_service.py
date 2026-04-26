@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from helixlabs.domain.models import (
     IntakePayload,
     OutcomesPayload,
@@ -141,16 +143,19 @@ class StageService:
         return payload, events
 
     def stage_parse_goal(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
-        base_entities = ["composition", "temperature", "transport", "stability"]
         g = run.user_goal.lower()
-        if "battery" in g or "cell" in g:
-            base_entities.append("cell_geometry")
-        if "thin film" in g or "film" in g:
-            base_entities.append("film_processing")
+        tokens = [t for t in re.findall(r"[a-zA-Z0-9]{4,}", g) if t not in {"with", "from", "that", "this", "using"}]
+        top_entities = list(dict.fromkeys(tokens[:8])) or ["input_factor", "response_metric"]
+        if any(k in g for k in ("electrolyte", "conductivity", "dop", "phase", "battery", "chem")):
+            domain = "chemistry_materials"
+        elif any(k in g for k in ("ad", "ctr", "conversion", "ranking", "pricing", "funnel")):
+            domain = "digital_optimization"
+        else:
+            domain = "generic_experimentation"
         payload = {
-            "domain": "materials_discovery",
+            "domain": domain,
             "objective": run.user_goal,
-            "entities": base_entities,
+            "entities": top_entities,
         }
         return payload, [self._event("STATE", "Intake", "Goal parsed into structured intent")]
 
@@ -160,6 +165,7 @@ class StageService:
             "source": synthesis.get("source", "fallback"),
             "studies": synthesis.get("studies", []),
             "reason": synthesis.get("reason"),
+            "axis_hints": synthesis.get("axis_hints", {}),
             "main_claim": synthesis.get("main_claim"),
             "weakest_claim": synthesis.get("weakest_claim"),
             "next_target": synthesis.get("next_target"),
@@ -272,8 +278,11 @@ class StageService:
         return payload, [self._event("DECISION", "Intake", "Weakest claim selected for planning focus")]
 
     def stage_compile_ir(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
+        plugin = self._plugin_for_run(run)
         selected = self._plugin_router.select(run)
-        plugin_payload = selected.plugin.compile_ir(run)
+        confidence = selected.confidence if selected.plugin.plugin_id == plugin.plugin_id else 1.0
+        reason = selected.reason if selected.plugin.plugin_id == plugin.plugin_id else f"Plugin override selected '{plugin.plugin_id}'"
+        plugin_payload = plugin.compile_ir(run)
         validation = self._ir_validator.validate(plugin_payload.get("experiment_ir") or {})
         payload = {
             "experiment_type": f"plugin:{selected.plugin.plugin_id}",
@@ -289,9 +298,9 @@ class StageService:
             },
             "literature_fingerprint": plugin_payload.get("literature_fingerprint", {}),
             "plugin": {
-                "selected_plugin": selected.plugin.plugin_id,
-                "selection_confidence": round(selected.confidence, 4),
-                "selection_reason": selected.reason,
+                "selected_plugin": plugin.plugin_id,
+                "selection_confidence": round(confidence, 4),
+                "selection_reason": reason,
             },
         }
         msg = "Experiment IR compiled from literature-conditioned design grid"
@@ -374,6 +383,11 @@ class StageService:
         )
 
     def _plugin_for_run(self, run: RunRecord) -> ExperimentPlugin:
+        override = run.artifacts.get("plugin_override")
+        if isinstance(override, str) and override.strip():
+            plugin = self._plugin_router.by_id(override.strip())
+            if plugin is not None:
+                return plugin
         plugin_meta = (run.artifacts.get("experiment_ir") or {}).get("plugin") or {}
         plugin_id = plugin_meta.get("selected_plugin")
         if isinstance(plugin_id, str):

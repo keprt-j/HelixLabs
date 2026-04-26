@@ -10,13 +10,24 @@ class RunOrchestrator:
         self._repo = repo
         self._stage_service = stage_service
 
-    def create_run(self, run_id: str, user_goal: str) -> RunRecord:
+    def create_run(
+        self,
+        run_id: str,
+        user_goal: str,
+        plugin_override: str | None = None,
+        simulation_overrides: dict[str, str | int | float] | None = None,
+    ) -> RunRecord:
+        artifacts: dict[str, object] = {}
+        if plugin_override:
+            artifacts["plugin_override"] = plugin_override
+        if simulation_overrides:
+            artifacts["simulation_overrides"] = simulation_overrides
         run = RunRecord(
             run_id=run_id,
             user_goal=user_goal,
             state=RunState.CREATED,
             pipeline=PipelinePayload(),
-            artifacts={},
+            artifacts=artifacts,
             provenance=[],
             created_at=RunRecord.now_iso(),
             updated_at=RunRecord.now_iso(),
@@ -35,6 +46,65 @@ class RunOrchestrator:
 
     def get_run(self, run_id: str) -> RunRecord | None:
         return self._repo.get(run_id)
+
+    def list_runs(self, limit: int = 100) -> list[RunRecord]:
+        return self._repo.list_runs(limit=limit)
+
+    def set_simulation_overrides(self, run_id: str, overrides: dict[str, str | int | float]) -> RunRecord | None:
+        run = self._repo.get(run_id)
+        if run is None:
+            return None
+        run.artifacts["simulation_overrides"] = overrides
+        run.updated_at = RunRecord.now_iso()
+        self._repo.save(run)
+        return run
+
+    def replan(self, run_id: str) -> RunRecord | None:
+        run = self._repo.get(run_id)
+        if run is None:
+            return None
+        allowed = {
+            RunState.CLAIM_GRAPH_BUILT,
+            RunState.EXPERIMENT_IR_COMPILED,
+            RunState.FEASIBILITY_VALIDATED,
+            RunState.NOVELTY_VALUE_SCORED,
+            RunState.PROTOCOL_GENERATED,
+            RunState.AWAITING_HUMAN_APPROVAL,
+        }
+        if run.state not in allowed:
+            raise ValueError(f"Cannot replan from state '{run.state.value}'")
+        run.state = RunState.CLAIM_GRAPH_BUILT
+        run.pipeline.planning.compiler = {}
+        run.pipeline.planning.schedule = {}
+        for key in [
+            "experiment_ir",
+            "feasibility_report",
+            "value_score",
+            "protocol",
+            "schedule",
+            "normalized_results",
+            "execution_log",
+            "failure_recovery_plan",
+            "validation_report",
+            "interpretation",
+            "next_experiment_recommendation",
+            "report",
+            "memory_update",
+        ]:
+            run.artifacts.pop(key, None)
+        run.provenance.append(
+            ProvenanceEvent(
+                time=RunRecord.now_iso(),
+                event_type="DECISION",
+                category="Planning",
+                message="Simulation controls changed; planning artifacts regenerated.",
+            )
+        )
+        run.updated_at = RunRecord.now_iso()
+        self._repo.save(run)
+        for stage in ["compile-ir", "validate-feasibility", "score-value", "generate-protocol", "schedule"]:
+            run = self.run_stage(run_id, stage) or run
+        return run
 
     def run_stage(self, run_id: str, stage_name: str) -> RunRecord | None:
         run = self._repo.get(run_id)
@@ -216,6 +286,8 @@ class RunOrchestrator:
             "qc": [],
             "summary_metrics": {},
             "procedure_trace": self._procedure_trace(run=run, status="executed"),
+            "fidelity": payload.get("plugin_fidelity", "unknown"),
+            "origin": payload.get("origin", "simulated"),
         }
         run.provenance.extend(events)
 

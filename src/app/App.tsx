@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { advanceRun, approveRun, createRun, fetchReportRun, fetchRun } from "./api/runApi";
+import { advanceRun, approveRun, createRun, fetchReportRun, fetchRun, replanRun, setRunSimulationOverrides } from "./api/runApi";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { Homepage } from "./components/Homepage";
@@ -15,7 +15,14 @@ import { DataValidationPanel } from "./components/panels/DataValidationPanel";
 import { ResultsPanel } from "./components/panels/ResultsPanel";
 import { NextExperimentPanel } from "./components/panels/NextExperimentPanel";
 import { ProvenanceLogPanel } from "./components/panels/ProvenanceLogPanel";
+import { RunSummaryPanel } from "./components/panels/RunSummaryPanel";
+import { CompareRunsPanel } from "./components/panels/CompareRunsPanel";
+import { ExperimentBriefPanel } from "./components/panels/ExperimentBriefPanel";
+import { StageNarrativeBanner } from "./components/panels/StageNarrativeBanner";
+import { ProcedureProgressPanel } from "./components/panels/ProcedureProgressPanel";
+import { SimulationControlsPanel } from "./components/panels/SimulationControlsPanel";
 import { mapRunStateToHeaderStatus } from "./lib/runUi";
+import { buildDemoReport } from "./lib/demoReport";
 import type { HelixRun } from "./types/run";
 
 const RUN_SESSION_KEY = "helixlabs_active_run_id";
@@ -46,9 +53,9 @@ function asRecord(v: unknown): Record<string, unknown> | null {
 type AppStage = "homepage" | "literature-review" | "dashboard";
 type DashboardSection = "intake" | "planning" | "runtime" | "outcomes";
 type IntakeTab = "goal" | "prior-work" | "claim-graph";
-type PlanningTab = "compiler" | "schedule";
+type PlanningTab = "compiler" | "simulation" | "schedule";
 type RuntimeTab = "execution" | "recovery" | "validation" | "results";
-type OutcomesTab = "next" | "provenance";
+type OutcomesTab = "summary" | "next" | "provenance" | "compare";
 type SectionTabMap = {
   intake: IntakeTab;
   planning: PlanningTab;
@@ -69,7 +76,7 @@ export default function App() {
     intake: "goal",
     planning: "compiler",
     runtime: "execution",
-    outcomes: "next",
+    outcomes: "summary",
   });
 
   const refreshRun = useCallback(async () => {
@@ -144,6 +151,60 @@ export default function App() {
     }
   }, [runId, run]);
 
+  const handleDemoWalkthrough = useCallback(async () => {
+    if (!runId) return;
+    setActionBusy(true);
+    setRunError(null);
+    try {
+      let current = run ?? (await fetchRun(runId));
+      for (let i = 0; i < 20; i++) {
+        if (current.state === "MEMORY_UPDATED" || current.state === "REPORT_GENERATED") break;
+        if (current.state === "AWAITING_HUMAN_APPROVAL") {
+          current = await approveRun(runId);
+        } else {
+          current = await advanceRun(runId);
+        }
+        setRun(current);
+      }
+      setCurrentSection("outcomes");
+      setSectionTabs((prev) => ({ ...prev, outcomes: "summary" }));
+    } catch (e) {
+      setRunError(e instanceof Error ? e.message : "Demo walkthrough failed");
+    } finally {
+      setActionBusy(false);
+    }
+  }, [runId, run]);
+
+  const handleExportDemo = useCallback(() => {
+    if (!run) return;
+    const text = buildDemoReport(run);
+    const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `helixlabs-demo-${run.run_id}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [run]);
+
+  const handleApplySimulationControls = useCallback(
+    async (overrides: { n_replicates?: number; noise_scale_relative?: number; design_density?: "coarse" | "medium" | "fine" }) => {
+      if (!runId) return;
+      setActionBusy(true);
+      setRunError(null);
+      try {
+        await setRunSimulationOverrides(runId, overrides);
+        const replanned = await replanRun(runId);
+        setRun(replanned);
+      } catch (e) {
+        setRunError(e instanceof Error ? e.message : "Failed to apply simulation controls");
+      } finally {
+        setActionBusy(false);
+      }
+    },
+    [runId],
+  );
+
   if (stage === "homepage") {
     return (
       <div className="size-full">
@@ -198,9 +259,15 @@ export default function App() {
   const validationReport = asRecord(artifacts.validation_report);
   const interpretation = asRecord(artifacts.interpretation);
   const normalizedResults = asRecord(artifacts.normalized_results);
+  const normalizedFidelity = typeof normalizedResults?.fidelity === "string" ? normalizedResults.fidelity : null;
+  const normalizedOrigin = typeof normalizedResults?.origin === "string" ? normalizedResults.origin : null;
   const procedureTraceRaw = normalizedResults?.procedure_trace;
   const procedureTrace = Array.isArray(procedureTraceRaw)
     ? procedureTraceRaw.filter((x): x is Record<string, unknown> => typeof x === "object" && x !== null)
+    : [];
+  const observationsRaw = normalizedResults?.observations;
+  const observations = Array.isArray(observationsRaw)
+    ? observationsRaw.filter((x): x is Record<string, unknown> => typeof x === "object" && x !== null)
     : [];
   const nextRec = asRecord(artifacts.next_experiment_recommendation);
 
@@ -223,6 +290,7 @@ export default function App() {
     ],
     planning: [
       { id: "compiler", label: "Experiment Compiler" },
+      { id: "simulation", label: "Simulation Controls" },
       { id: "schedule", label: "Schedule" },
     ],
     runtime: [
@@ -232,10 +300,14 @@ export default function App() {
       { id: "results", label: "Results" },
     ],
     outcomes: [
+      { id: "summary", label: "Run Summary" },
       { id: "next", label: "Next Experiment" },
       { id: "provenance", label: "Provenance Log" },
+      { id: "compare", label: "Compare Runs" },
     ],
   };
+
+  const selectedTab = sectionTabs[currentSection];
 
   const renderPanel = () => {
     switch (currentSection) {
@@ -279,6 +351,17 @@ export default function App() {
                 />
               </div>
             );
+          case "simulation":
+            return (
+              <div>
+                <h2 className="text-xl text-stone-900 mb-6">Simulation Controls</h2>
+                <SimulationControlsPanel
+                  current={asRecord(artifacts.simulation_overrides)}
+                  onApply={handleApplySimulationControls}
+                  busy={actionBusy}
+                />
+              </div>
+            );
           case "schedule":
             return (
               <div>
@@ -316,7 +399,14 @@ export default function App() {
             return (
               <div>
                 <h2 className="text-xl text-stone-900 mb-6">Results</h2>
-                <ResultsPanel artifact={interpretation} chartSeries={chartSeries} procedureTrace={procedureTrace} />
+                <ResultsPanel
+                  artifact={interpretation}
+                  chartSeries={chartSeries}
+                  procedureTrace={procedureTrace}
+                  observations={observations}
+                  fidelity={normalizedFidelity}
+                  origin={normalizedOrigin}
+                />
               </div>
             );
           default:
@@ -324,6 +414,13 @@ export default function App() {
         }
       case "outcomes":
         switch (sectionTabs.outcomes) {
+          case "summary":
+            return (
+              <div>
+                <h2 className="text-xl text-stone-900 mb-6">Run Summary</h2>
+                {run ? <RunSummaryPanel run={run} /> : <div className="text-sm text-stone-600">Run not loaded.</div>}
+              </div>
+            );
           case "next":
             return (
               <div>
@@ -336,6 +433,13 @@ export default function App() {
               <div>
                 <h2 className="text-xl text-stone-900 mb-6">Provenance Log</h2>
                 <ProvenanceLogPanel events={run?.provenance} />
+              </div>
+            );
+          case "compare":
+            return (
+              <div>
+                <h2 className="text-xl text-stone-900 mb-6">Compare Runs</h2>
+                <CompareRunsPanel baseRun={run} />
               </div>
             );
           default:
@@ -357,6 +461,8 @@ export default function App() {
         onAdvance={canAdvance ? handleAdvance : undefined}
         onApprove={runId ? handleApprove : undefined}
         onExportReport={runId && canExport ? handleExportReport : undefined}
+        onExportDemo={run ? handleExportDemo : undefined}
+        onDemoWalkthrough={canAdvance || showApprove ? handleDemoWalkthrough : undefined}
         showApprove={showApprove}
         actionBusy={actionBusy}
       />
@@ -377,7 +483,10 @@ export default function App() {
           <div className="absolute top-20 right-20 w-96 h-96 bg-green-200/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-20 left-20 w-96 h-96 bg-emerald-200/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="max-w-7xl mx-auto relative z-10">
+          <div className="max-w-7xl mx-auto relative z-10 space-y-4">
+            {run && <ExperimentBriefPanel run={run} />}
+            <ProcedureProgressPanel trace={procedureTrace} />
+
             {runError && (
               <div className="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">{runError}</div>
             )}
@@ -385,6 +494,7 @@ export default function App() {
               <div className="mb-4 text-sm text-stone-600">Loading run {runId}…</div>
             )}
             {renderPanel()}
+            <StageNarrativeBanner section={currentSection} tab={selectedTab} />
           </div>
         </main>
       </div>

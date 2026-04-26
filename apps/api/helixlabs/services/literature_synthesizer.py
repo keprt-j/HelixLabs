@@ -32,14 +32,17 @@ class LiteratureSynthesizerService:
             return self._fallback(user_goal=user_goal, reason="No studies passed data-quality thresholds")
 
         novelty_score, redundancy_score = self._derive_scores(top)
+        axis_hints = self._extract_axis_hints(top, user_goal)
+        claims = self._derive_claims(top, user_goal)
         synthesis = {
             "source": "crossref",
             "studies": top,
             "novelty_score": novelty_score,
             "redundancy_score": redundancy_score,
-            "main_claim": "Literature suggests targeted doping can improve measured conductivity in candidate materials.",
-            "weakest_claim": "Performance gains remain stable under broader operating conditions.",
-            "next_target": "Validate stability-focused claims for top-ranked relevant compositions.",
+            "main_claim": claims["main_claim"],
+            "weakest_claim": claims["weakest_claim"],
+            "next_target": claims["next_target"],
+            "axis_hints": axis_hints,
         }
 
         if client is None:
@@ -115,25 +118,38 @@ class LiteratureSynthesizerService:
         client: OpenAI | None,
     ) -> dict[str, Any] | None:
         abstract = str(candidate.get("abstract", "")).strip()
-        snippet = abstract
-        evidence = "abstract"
-        if len(snippet) < 120:
-            fetched = self._try_fetch_fulltext_snippet(candidate.get("url"))
-            if fetched:
-                snippet = fetched
-                evidence = "fulltext"
+        snippet = ""
+        evidence = ""
+
+        # Prefer full-text evidence whenever it is accessible.
+        fetched = self._try_fetch_fulltext_snippet(candidate.get("url"))
+        if fetched and len(fetched) >= 120:
+            snippet = fetched
+            evidence = "fulltext"
+        else:
+            snippet = abstract
+            evidence = "abstract"
 
         # Skip studies with insufficient content and move to the next candidate.
         if len(snippet) < 120:
             return None
 
         merged = dict(candidate)
-        merged["methodology"] = self._clip(snippet, 220)
-        merged["findings"] = "Estimated finding: relevance and evidence extracted from retrieved study text."
-        merged["limitations"] = "Estimated limitation: automated summary from retrieved text; manual verification recommended."
-        merged["equipment_estimate"] = "Estimated equipment: domain-standard instrumentation based on study context."
-        merged["funding_estimate"] = "Estimated funding: likely grant-supported academic research."
+        merged["methodology"] = self._conclude(self._heuristic_methodology(snippet), 150)
+        merged["findings"] = self._conclude(self._heuristic_findings(snippet, user_goal), 140)
+        merged["limitations"] = self._conclude(self._heuristic_limitations(snippet, evidence), 140)
+        merged["equipment_estimate"] = self._conclude(self._heuristic_equipment(snippet), 120)
+        merged["funding_estimate"] = self._conclude(self._heuristic_funding(snippet), 120)
         merged["evidence_level"] = evidence
+        merged["evidence_confidence"] = self._evidence_confidence(
+            relevance=float(candidate.get("relevance", 0.0)),
+            evidence=evidence,
+        )
+        merged["selection_reason"] = self._selection_reason(
+            user_goal=user_goal,
+            title=str(candidate.get("title", "")),
+            relevance=float(candidate.get("relevance", 0.0)),
+        )
 
         if client is None:
             return merged
@@ -141,7 +157,7 @@ class LiteratureSynthesizerService:
         try:
             prompt = (
                 "Given this study snippet and user goal, produce concise JSON with keys: "
-                "methodology (<=220 chars), findings (<=180 chars), limitations (<=180 chars), "
+                "methodology (<=150 chars), findings (<=140 chars), limitations (<=140 chars), "
                 "equipment_estimate (<=120 chars), funding_estimate (<=120 chars). "
                 "Do not invent citations.\n"
                 f"User goal: {user_goal}\n"
@@ -157,18 +173,22 @@ class LiteratureSynthesizerService:
             raw = response.output_text.strip()
             data = json.loads(raw)
             if isinstance(data, dict):
-                merged["methodology"] = self._clip(str(data.get("methodology", merged["methodology"])), 220)
-                merged["findings"] = self._clip(str(data.get("findings", merged["findings"])), 180)
-                merged["limitations"] = self._clip(str(data.get("limitations", merged["limitations"])), 180)
-                merged["equipment_estimate"] = self._clip(
+                merged["methodology"] = self._conclude(str(data.get("methodology", merged["methodology"])), 150)
+                merged["findings"] = self._conclude(str(data.get("findings", merged["findings"])), 140)
+                merged["limitations"] = self._conclude(str(data.get("limitations", merged["limitations"])), 140)
+                merged["equipment_estimate"] = self._conclude(
                     str(data.get("equipment_estimate", merged["equipment_estimate"])),
                     120,
                 )
-                merged["funding_estimate"] = self._clip(
+                merged["funding_estimate"] = self._conclude(
                     str(data.get("funding_estimate", merged["funding_estimate"])),
                     120,
                 )
                 merged["evidence_level"] = f"{evidence}+ai"
+                merged["evidence_confidence"] = self._evidence_confidence(
+                    relevance=float(merged.get("relevance", 0.0)),
+                    evidence="fulltext+ai" if evidence == "fulltext" else "abstract+ai",
+                )
         except (APIError, ValueError, json.JSONDecodeError):
             pass
 
@@ -214,11 +234,29 @@ class LiteratureSynthesizerService:
         return novelty, redundancy
 
     @staticmethod
-    def _clip(text: str, limit: int) -> str:
-        clean = re.sub(r"\s+", " ", text).strip()
+    def _conclude(text: str, limit: int) -> str:
+        clean = re.sub(r"\s+", " ", text).strip().strip("\"'")
+        if not clean:
+            return "Summary unavailable."
+
         if len(clean) <= limit:
-            return clean
-        return clean[: limit - 3].rstrip() + "..."
+            return clean if re.search(r"[.!?]$", clean) else f"{clean}."
+
+        # Prefer a natural sentence end before limit.
+        sentence_ends = [m.end() for m in re.finditer(r"[.!?]", clean)]
+        best_end = max((e for e in sentence_ends if e <= limit), default=0)
+        if best_end >= 80:
+            return clean[:best_end].strip()
+
+        # Otherwise, cut at word boundary and end with a period (no ellipsis).
+        chunk = clean[:limit].rstrip(" ,;:-")
+        space = chunk.rfind(" ")
+        if space >= 60:
+            chunk = chunk[:space]
+        chunk = re.sub(r"[.!?]+$", "", chunk).strip()
+        if not chunk:
+            return "Summary unavailable."
+        return f"{chunk}."
 
     @staticmethod
     def _try_fetch_fulltext_snippet(url: Any) -> str:
@@ -244,7 +282,189 @@ class LiteratureSynthesizerService:
             return ""
 
     @staticmethod
+    def _sentences(text: str) -> list[str]:
+        cleaned = re.sub(r"\s+", " ", text).strip()
+        if not cleaned:
+            return []
+        parts = re.split(r"(?<=[.!?])\s+", cleaned)
+        return [p.strip() for p in parts if p.strip()]
+
+    @staticmethod
+    def _pick_sentence(snippet: str, keywords: tuple[str, ...]) -> str | None:
+        for sentence in LiteratureSynthesizerService._sentences(snippet):
+            lowered = sentence.lower()
+            if any(k in lowered for k in keywords):
+                return sentence
+        return None
+
+    @staticmethod
+    def _heuristic_methodology(snippet: str) -> str:
+        picked = LiteratureSynthesizerService._pick_sentence(
+            snippet,
+            ("method", "experiment", "protocol", "measured", "analy", "dataset", "survey", "trial"),
+        )
+        if picked:
+            return f"Method summary: {picked}"
+        fallback = LiteratureSynthesizerService._sentences(snippet)
+        return f"Method summary: {fallback[0]}" if fallback else "Method summary unavailable from retrieved text."
+
+    @staticmethod
+    def _heuristic_findings(snippet: str, user_goal: str) -> str:
+        picked = LiteratureSynthesizerService._pick_sentence(
+            snippet,
+            ("result", "found", "improv", "increase", "decrease", "significant", "performance", "outcome"),
+        )
+        if picked:
+            return f"Key finding: {picked}"
+        tokens = sorted(LiteratureSynthesizerService._tokens(user_goal))[:4]
+        anchor = ", ".join(tokens) if tokens else "goal-aligned factors"
+        return f"Key finding not explicitly stated in snippet; relevance is inferred from overlap with {anchor}."
+
+    @staticmethod
+    def _heuristic_limitations(snippet: str, evidence: str) -> str:
+        picked = LiteratureSynthesizerService._pick_sentence(
+            snippet,
+            ("limitation", "future work", "however", "uncertain", "small sample", "constraint", "bias"),
+        )
+        if picked:
+            return f"Reported limitation: {picked}"
+        if evidence == "abstract":
+            return "Limitation: synthesized from abstract-level evidence only; verify with full text and methods."
+        return "Limitation: automated extraction from page text may miss protocol details and caveats."
+
+    @staticmethod
+    def _heuristic_equipment(snippet: str) -> str:
+        s = snippet.lower()
+        equipment: list[str] = []
+        mapping = (
+            ("xrd", "XRD"),
+            ("diffraction", "diffractometer"),
+            ("spectroscopy", "spectrometer"),
+            ("microscopy", "microscope"),
+            ("impedance", "impedance analyzer"),
+            ("electrochem", "electrochemical workstation"),
+            ("temperature", "temperature-controlled chamber"),
+            ("furnace", "furnace"),
+            ("chromat", "chromatography system"),
+            ("reactor", "reactor"),
+            ("simulation", "compute cluster"),
+        )
+        for needle, label in mapping:
+            if needle in s and label not in equipment:
+                equipment.append(label)
+        if equipment:
+            return f"Likely equipment from text cues: {', '.join(equipment[:4])}."
+        return "Equipment not explicitly reported in retrieved snippet."
+
+    @staticmethod
+    def _heuristic_funding(snippet: str) -> str:
+        s = snippet.lower()
+        if "grant" in s or "funded by" in s or "nsf" in s or "nih" in s or "horizon" in s:
+            return "Funding note: external grant support is mentioned."
+        if "industry" in s or "company" in s or "corporate" in s:
+            return "Funding note: industry-affiliated support is suggested."
+        return "Funding information not found in retrieved text."
+
+    @staticmethod
+    def _evidence_confidence(relevance: float, evidence: str) -> float:
+        base = max(0.0, min(1.0, relevance))
+        evidence_bonus = 0.1 if "fulltext" in evidence else 0.0
+        ai_bonus = 0.05 if "+ai" in evidence else 0.0
+        return round(max(0.0, min(1.0, base + evidence_bonus + ai_bonus)), 3)
+
+    @staticmethod
+    def _selection_reason(user_goal: str, title: str, relevance: float) -> str:
+        tokens = LiteratureSynthesizerService._tokens(user_goal)
+        title_tokens = LiteratureSynthesizerService._tokens(title)
+        overlap = sorted(tokens & title_tokens)
+        if overlap:
+            joined = ", ".join(overlap[:3])
+            return f"Selected for token overlap ({joined}) and relevance score {relevance:.2f}."
+        return f"Selected for top-ranked relevance score {relevance:.2f} against your goal."
+
+    @staticmethod
+    def _derive_claims(studies: list[dict[str, Any]], user_goal: str) -> dict[str, str]:
+        goal_tokens = sorted(LiteratureSynthesizerService._tokens(user_goal))
+        top = studies[0] if studies else {}
+        secondary = studies[1] if len(studies) > 1 else {}
+        top_title = str(top.get("title", "")).strip()
+        sec_title = str(secondary.get("title", "")).strip()
+        anchor_tokens = sorted(
+            LiteratureSynthesizerService._tokens(top_title + " " + str(top.get("abstract", ""))) & set(goal_tokens)
+        )
+        anchor = ", ".join(anchor_tokens[:3]) if anchor_tokens else ", ".join(goal_tokens[:3]) or "goal variables"
+        main_claim = (
+            f"Evidence indicates {anchor} strongly influences the target outcome."
+            if anchor
+            else f"Evidence indicates key controllable factors influence the target outcome."
+        )
+        weakest_claim = (
+            f"Generalization beyond conditions reported in '{top_title[:80]}' remains uncertain."
+            if top_title
+            else "Generalization outside retrieved study conditions remains uncertain."
+        )
+        next_target = (
+            f"Test robustness across boundary settings and compare against patterns from '{sec_title[:80]}'."
+            if sec_title
+            else "Test robustness at boundary settings to validate the strongest inferred relationship."
+        )
+        return {
+            "main_claim": LiteratureSynthesizerService._conclude(main_claim, 180),
+            "weakest_claim": LiteratureSynthesizerService._conclude(weakest_claim, 180),
+            "next_target": LiteratureSynthesizerService._conclude(next_target, 180),
+        }
+
+    @staticmethod
+    def _extract_axis_hints(studies: list[dict[str, Any]], user_goal: str) -> dict[str, str]:
+        text = " ".join(
+            [user_goal]
+            + [str(s.get("title", "")) for s in studies[:8]]
+            + [str(s.get("abstract", ""))[:600] for s in studies[:8]]
+        ).lower()
+        x_label = "Input Variable"
+        x_unit = ""
+        y_label = "Response"
+        y_unit = ""
+        y_format = "float"
+
+        x_patterns = [
+            (r"temperature|thermal|heat", ("Temperature", "C")),
+            (r"time|duration|aging|hour", ("Time", "h")),
+            (r"pressure|bar|kpa|pa", ("Pressure", "kPa")),
+            (r"voltage|potential|bias", ("Voltage", "V")),
+            (r"current density|ma/cm2|a/cm2", ("Current density", "mA/cm2")),
+            (r"concentration|mol%|wt%|dop", ("Concentration", "mol%")),
+            (r"ph\\b", ("pH", "")),
+        ]
+        y_patterns = [
+            (r"conductiv|sigma\\b|s/cm", ("Conductivity", "S/cm", "scientific")),
+            (r"yield|conversion|efficiency|percent|%", ("Yield", "%", "percent")),
+            (r"capacity|mah/g|ah/kg", ("Capacity", "mAh/g", "float")),
+            (r"strength|mpa|modulus", ("Strength", "MPa", "float")),
+            (r"score|objective|accuracy", ("Objective score", "", "float")),
+            (r"cost|usd|\\$", ("Cost", "USD", "currency")),
+        ]
+
+        for pattern, meta in x_patterns:
+            if re.search(pattern, text):
+                x_label, x_unit = meta
+                break
+        for pattern, meta in y_patterns:
+            if re.search(pattern, text):
+                y_label, y_unit, y_format = meta
+                break
+        return {
+            "x_label": x_label,
+            "x_unit": x_unit,
+            "y_label": y_label,
+            "y_unit": y_unit,
+            "y_format": y_format,
+        }
+
+    @staticmethod
     def _fallback(user_goal: str, reason: str) -> dict[str, Any]:
+        goal_tokens = sorted(LiteratureSynthesizerService._tokens(user_goal))
+        anchor = ", ".join(goal_tokens[:3]) if goal_tokens else "the requested objective"
         return {
             "source": "fallback",
             "reason": reason,
@@ -294,8 +514,15 @@ class LiteratureSynthesizerService:
             ],
             "novelty_score": 7.2,
             "redundancy_score": 3.1,
-            "main_claim": "Fe doping can improve ionic conductivity without compromising stability.",
-            "weakest_claim": "Phase stability remains intact at upper concentration and temperature bounds.",
-            "next_target": "Run targeted phase-stability checks for Fe-doped compositions above 250C.",
+            "main_claim": f"Available priors suggest {anchor} may improve under tuned operating settings.",
+            "weakest_claim": "Robustness of gains outside reported ranges remains uncertain.",
+            "next_target": "Execute boundary-condition sweeps to verify robustness and identify failure regions.",
+            "axis_hints": {
+                "x_label": "Concentration",
+                "x_unit": "mol%",
+                "y_label": "Conductivity",
+                "y_unit": "S/cm",
+                "y_format": "scientific",
+            },
             "goal_echo": user_goal,
         }

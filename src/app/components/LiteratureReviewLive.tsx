@@ -21,8 +21,25 @@ interface Study {
   methodology: string;
   findings: string;
   limitations: string;
-  equipmentEstimate: string;
-  fundingEstimate: string;
+  equipmentEstimate: string | null;
+  fundingEstimate: string | null;
+  evidenceLevel: string | null;
+  evidenceConfidence: number | null;
+  selectionReason: string | null;
+}
+
+function concludeText(value: unknown, limit: number, fallback: string): string {
+  const clean = typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+  if (!clean) return fallback;
+  if (clean.length <= limit) return /[.!?]$/.test(clean) ? clean : `${clean}.`;
+  const sentence = clean.slice(0, limit);
+  const punctuation = Math.max(sentence.lastIndexOf("."), sentence.lastIndexOf("!"), sentence.lastIndexOf("?"));
+  if (punctuation >= 80) {
+    return sentence.slice(0, punctuation + 1).trim();
+  }
+  const boundary = sentence.lastIndexOf(" ");
+  const base = (boundary >= 60 ? sentence.slice(0, boundary) : sentence).replace(/[.!?]+$/, "").trim();
+  return base ? `${base}.` : fallback;
 }
 
 export function LiteratureReviewLive({ experiment, runId: existingRunId, onProceedToDashboard }: LiteratureReviewProps) {
@@ -76,13 +93,23 @@ export function LiteratureReviewLive({ experiment, runId: existingRunId, onProce
           similarity: Number(study?.similarity ?? study?.relevance ?? 0),
           exists: Boolean(study?.exists ?? true),
           citation: typeof study?.doi === "string" ? `DOI: ${study.doi}` : null,
-          methodology: study?.abstract
-            ? String(study.abstract).slice(0, 260)
-            : String(study?.methodology ?? "Abstract not available from provider."),
-          findings: String(study?.findings ?? "Retrieved from indexed literature metadata and ranked by relevance."),
-          limitations: String(study?.limitations ?? "Metadata-level synthesis; manual full-text review recommended."),
-          equipmentEstimate: String(study?.equipment_estimate ?? "Estimated equipment not provided."),
-          fundingEstimate: String(study?.funding_estimate ?? "Estimated funding not provided."),
+          methodology: concludeText(
+            study?.methodology ?? study?.abstract,
+            150,
+            "Method summary unavailable from retrieved text.",
+          ),
+          findings: concludeText(study?.findings, 140, "Finding summary not available from retrieved text."),
+          limitations: concludeText(study?.limitations, 140, "Limitations not reported in retrieved text."),
+          equipmentEstimate:
+            typeof study?.equipment_estimate === "string"
+              ? concludeText(study.equipment_estimate, 120, "")
+              : null,
+          fundingEstimate:
+            typeof study?.funding_estimate === "string" ? concludeText(study.funding_estimate, 120, "") : null,
+          evidenceLevel: typeof study?.evidence_level === "string" ? study.evidence_level : null,
+          evidenceConfidence:
+            typeof study?.evidence_confidence === "number" ? Math.max(0, Math.min(1, Number(study.evidence_confidence))) : null,
+          selectionReason: typeof study?.selection_reason === "string" ? study.selection_reason : null,
         }));
 
         setStudies(mapped);
@@ -111,12 +138,6 @@ export function LiteratureReviewLive({ experiment, runId: existingRunId, onProce
     void load();
   }, [experiment, existingRunId]);
 
-  const existingStudies = studies.filter((s) => s.exists);
-  const avgRelevancy =
-    studies.length > 0
-      ? ((studies.reduce((sum, s) => sum + s.relevancy, 0) / studies.length) * 100).toFixed(0)
-      : "0";
-
   return (
     <div className="w-full h-full bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 relative flex flex-col">
       <div className="relative z-10 w-full flex-1 flex flex-col min-h-0">
@@ -130,21 +151,8 @@ export function LiteratureReviewLive({ experiment, runId: existingRunId, onProce
                     Analyzing prior work for: <span className="text-green-700 font-medium">{experiment}</span>
                   </p>
                 </div>
-                <div className="flex gap-4">
-                  <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-xl shadow-sm">
-                    <div className="text-xs text-green-700 mb-1 font-medium">Studies Found</div>
-                    <div className="text-2xl text-stone-900 font-light">{existingStudies.length}/{studies.length}</div>
-                  </div>
-                  <div className="px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm">
-                    <div className="text-xs text-emerald-700 mb-1 font-medium">Novelty Score</div>
-                    <div className="text-2xl text-stone-900 font-light">{noveltyScore}/10</div>
-                  </div>
-                  <div className="px-4 py-3 bg-teal-50 border border-teal-200 rounded-xl shadow-sm">
-                    <div className="text-xs text-teal-700 mb-1 font-medium">Avg Relevancy</div>
-                    <div className="text-2xl text-stone-900 font-light">{avgRelevancy}%</div>
-                  </div>
-                </div>
               </div>
+              <div className="mt-3 text-xs text-stone-600">Novelty score: {noveltyScore}/10</div>
             </div>
           </div>
         )}
@@ -202,7 +210,13 @@ export function LiteratureReviewLive({ experiment, runId: existingRunId, onProce
                           <div className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-xs text-emerald-700 font-medium">
                             {(study.similarity * 100).toFixed(1)}% similar
                           </div>
+                          {study.evidenceConfidence != null && (
+                            <div className="px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full text-xs text-blue-700 font-medium">
+                              {(study.evidenceConfidence * 100).toFixed(0)}% confidence
+                            </div>
+                          )}
                         </div>
+                        {study.selectionReason && <div className="mt-3 text-xs text-stone-600">{study.selectionReason}</div>}
                       </div>
                     </div>
                   </motion.div>
@@ -222,12 +236,23 @@ export function LiteratureReviewLive({ experiment, runId: existingRunId, onProce
                   <div>
                     <div className="text-sm text-stone-800 font-medium">{selectedStudy.exists ? "Existing Study" : "Research Gap"}</div>
                     <div className="text-xs text-stone-600">{selectedStudy.citation ?? "No citation available"}</div>
+                    {selectedStudy.evidenceLevel ? (
+                      <div className="mt-1 inline-flex px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-700">
+                        evidence: {selectedStudy.evidenceLevel}
+                      </div>
+                    ) : null}
+                    {selectedStudy.evidenceConfidence != null ? (
+                      <div className="mt-1 text-[11px] text-blue-700">confidence: {(selectedStudy.evidenceConfidence * 100).toFixed(0)}%</div>
+                    ) : null}
                   </div>
                   <button onClick={() => setSelectedStudy(null)} className="text-stone-600 hover:text-stone-900 transition-colors">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
                 <h3 className="text-xl text-stone-900 font-medium mb-4 leading-tight">{selectedStudy.title}</h3>
+                {selectedStudy.selectionReason ? (
+                  <div className="mb-4 rounded border border-blue-200 bg-blue-50/50 p-3 text-xs text-blue-900">{selectedStudy.selectionReason}</div>
+                ) : null}
                 <div className="space-y-4">
                   <div className="bg-yellow-50/50 border border-amber-200 rounded-xl p-4">
                     <div className="text-sm text-stone-800 mb-2 font-medium">Methodology/Abstract</div>
@@ -241,14 +266,18 @@ export function LiteratureReviewLive({ experiment, runId: existingRunId, onProce
                     <div className="text-sm text-stone-800 mb-2 font-medium">Limitations</div>
                     <div className="text-sm text-stone-700 leading-relaxed">{selectedStudy.limitations}</div>
                   </div>
-                  <div className="bg-yellow-50/50 border border-amber-200 rounded-xl p-4">
-                    <div className="text-sm text-stone-800 mb-2 font-medium">Equipment Estimate</div>
-                    <div className="text-sm text-stone-700 leading-relaxed">{selectedStudy.equipmentEstimate}</div>
-                  </div>
-                  <div className="bg-yellow-50/50 border border-amber-200 rounded-xl p-4">
-                    <div className="text-sm text-stone-800 mb-2 font-medium">Funding Estimate</div>
-                    <div className="text-sm text-stone-700 leading-relaxed">{selectedStudy.fundingEstimate}</div>
-                  </div>
+                  {selectedStudy.equipmentEstimate ? (
+                    <div className="bg-yellow-50/50 border border-amber-200 rounded-xl p-4">
+                      <div className="text-sm text-stone-800 mb-2 font-medium">Equipment Estimate</div>
+                      <div className="text-sm text-stone-700 leading-relaxed">{selectedStudy.equipmentEstimate}</div>
+                    </div>
+                  ) : null}
+                  {selectedStudy.fundingEstimate ? (
+                    <div className="bg-yellow-50/50 border border-amber-200 rounded-xl p-4">
+                      <div className="text-sm text-stone-800 mb-2 font-medium">Funding Estimate</div>
+                      <div className="text-sm text-stone-700 leading-relaxed">{selectedStudy.fundingEstimate}</div>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="mt-8">
                   <motion.button

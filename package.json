@@ -6,7 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "dev:api": "python -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000 --reload"
+    "dev:api": "python -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000 --reload",
+    "test:frontend": "vitest run"
   },
   "dependencies": {
     "lucide-react": "0.487.0",
@@ -20,7 +21,9 @@
     "@tailwindcss/vite": "4.1.12",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",
-    "vite": "6.3.5"
+    "vite": "6.3.5",
+    "vitest": "^3.2.4",
+    "jsdom": "^26.1.0"
   },
   "pnpm": {
     "overrides": {

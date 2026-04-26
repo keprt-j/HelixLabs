@@ -18,3 +18,10 @@ export type HelixRun = {
   created_at: string;
   updated_at: string;
 };
+
+export type RunListItem = {
+  run_id: string;
+  state: string;
+  user_goal: string;
+  updated_at: string;
+};

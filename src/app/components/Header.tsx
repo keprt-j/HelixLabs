@@ -10,6 +10,8 @@ interface HeaderProps {
   onAdvance?: () => void;
   onApprove?: () => void;
   onExportReport?: () => void;
+  onExportDemo?: () => void;
+  onDemoWalkthrough?: () => void;
   showApprove?: boolean;
   actionBusy?: boolean;
 }
@@ -23,6 +25,8 @@ export function Header({
   onAdvance,
   onApprove,
   onExportReport,
+  onExportDemo,
+  onDemoWalkthrough,
   showApprove,
   actionBusy,
 }: HeaderProps) {
@@ -109,10 +113,23 @@ export function Header({
             type="button"
             disabled={actionBusy}
             onClick={onAdvance}
-            className="px-4 py-2 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white rounded flex items-center gap-2 transition-colors"
+            title="Advance"
+            aria-label="Advance"
+            className="w-9 h-9 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white rounded flex items-center justify-center transition-colors"
           >
             <Play className="w-4 h-4" />
-            Advance
+          </button>
+        )}
+        {onDemoWalkthrough && (
+          <button
+            type="button"
+            disabled={actionBusy}
+            onClick={onDemoWalkthrough}
+            title="Demo Walkthrough"
+            aria-label="Demo Walkthrough"
+            className="w-9 h-9 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white rounded flex items-center justify-center transition-colors"
+          >
+            <Play className="w-4 h-4" />
           </button>
         )}
 
@@ -121,10 +138,11 @@ export function Header({
             type="button"
             disabled={actionBusy}
             onClick={onApprove}
-            className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white rounded flex items-center gap-2 transition-colors"
+            title="Approve"
+            aria-label="Approve"
+            className="w-9 h-9 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white rounded flex items-center justify-center transition-colors"
           >
             <ShieldCheck className="w-4 h-4" />
-            Approve
           </button>
         )}
 
@@ -133,10 +151,23 @@ export function Header({
             type="button"
             disabled={actionBusy}
             onClick={onExportReport}
-            className="px-4 py-2 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white rounded flex items-center gap-2 transition-colors"
+            title="Export Report"
+            aria-label="Export Report"
+            className="w-9 h-9 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white rounded flex items-center justify-center transition-colors"
           >
             <Download className="w-4 h-4" />
-            Export Report
+          </button>
+        )}
+        {onExportDemo && (
+          <button
+            type="button"
+            disabled={actionBusy}
+            onClick={onExportDemo}
+            title="Export Demo"
+            aria-label="Export Demo"
+            className="w-9 h-9 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white rounded flex items-center justify-center transition-colors"
+          >
+            <Download className="w-4 h-4" />
           </button>
         )}
       </div>
