@@ -9,6 +9,7 @@ from helixlabs.services.evidence_store import EvidenceStore
 from helixlabs.services.literature_retriever import LiteratureRetrieverService
 from helixlabs.services.literature_synthesizer import LiteratureSynthesizerService
 from helixlabs.services.orchestrator import RunOrchestrator
+from helixlabs.services.pipeline_simulation import measurement_distribution_scores
 from helixlabs.services.stage_service import StageService
 
 
@@ -275,6 +276,26 @@ class PipelineGoldenTests(unittest.TestCase):
         ir = (run.artifacts.get("experiment_ir") or {})
         plugin = ((ir.get("plugin") or {}).get("selected_plugin"))
         self.assertEqual(plugin, "generic_blackbox")
+
+    def test_recommendation_scores_are_computed_from_measurement_distribution(self):
+        flat = [
+            {"objective_score": 0.50, "x1": 0.2, "x2": 0.2},
+            {"objective_score": 0.51, "x1": 0.5, "x2": 0.5},
+            {"objective_score": 0.49, "x1": 0.8, "x2": 0.8},
+        ]
+        varied = [
+            {"objective_score": 0.10, "x1": 0.0, "x2": 0.2},
+            {"objective_score": 0.45, "x1": 0.5, "x2": 0.4},
+            {"objective_score": 0.95, "x1": 1.0, "x2": 0.7},
+        ]
+        flat_scores = measurement_distribution_scores(flat, response_keys=["objective_score"], axis_keys=["x1", "x2"])
+        varied_scores = measurement_distribution_scores(varied, response_keys=["objective_score"], axis_keys=["x1", "x2"])
+
+        self.assertEqual(flat_scores["score_basis"]["method"], "measurement_distribution")
+        self.assertEqual(varied_scores["score_basis"]["method"], "measurement_distribution")
+        self.assertNotEqual(flat_scores["expected_information_gain"], varied_scores["expected_information_gain"])
+        self.assertGreater(varied_scores["expected_information_gain"], flat_scores["expected_information_gain"])
+        self.assertGreater(varied_scores["risk_level"], flat_scores["risk_level"])
 
     def test_biomedical_goal_avoids_physical_axis_hallucinations(self):
         orch = self._orchestrator()

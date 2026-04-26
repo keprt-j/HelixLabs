@@ -6,6 +6,7 @@ from typing import Any
 
 from helixlabs.domain.models import ExperimentIR, RunRecord
 from helixlabs.services.plugins.base import ExperimentPlugin
+from helixlabs.services.pipeline_simulation import measurement_distribution_scores
 
 
 def _seed(run: RunRecord) -> int:
@@ -282,12 +283,24 @@ class GenericBlackBoxPlugin(ExperimentPlugin):
         hints = _axis_hints(run)
         x_label = str(hints.get("x_label") or "primary variable")
         if not m:
-            return {"recommendation": "Increase sample budget and rerun generic sweep.", "expected_information_gain": 0.3, "risk_level": 0.5}
+            scores = measurement_distribution_scores([])
+            return {
+                "recommendation": "Increase sample budget and rerun generic sweep.",
+                "expected_information_gain": scores["expected_information_gain"],
+                "risk_level": scores["risk_level"],
+                "score_basis": scores["score_basis"],
+            }
         best = max(m, key=lambda x: float(x.get("objective_score", 0.0)))
+        scores = measurement_distribution_scores(
+            m,
+            response_keys=["objective_score"],
+            axis_keys=["x1", "x2"],
+        )
         return {
             "recommendation": f"Refine search near {x_label}={best.get('x1')} with denser local sampling and local sensitivity checks.",
-            "expected_information_gain": 0.55,
-            "risk_level": 0.42,
+            "expected_information_gain": scores["expected_information_gain"],
+            "risk_level": scores["risk_level"],
+            "score_basis": scores["score_basis"],
         }
 
     def report(self, run: RunRecord, execution_log: dict[str, Any], interpretation: dict[str, Any]) -> dict[str, Any]:

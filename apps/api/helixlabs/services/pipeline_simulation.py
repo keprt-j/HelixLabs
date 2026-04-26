@@ -321,6 +321,132 @@ def _pstdev(values: list[float]) -> float:
     return math.sqrt(var)
 
 
+def _clamp(v: float, lo: float = 0.0, hi: float = 1.0) -> float:
+    return max(lo, min(hi, v))
+
+
+def _numeric_values(measurements: list[dict[str, Any]], keys: list[str]) -> tuple[str | None, list[float]]:
+    for key in keys:
+        vals: list[float] = []
+        for row in measurements:
+            try:
+                val = float(row.get(key))
+            except (TypeError, ValueError):
+                continue
+            if math.isfinite(val):
+                vals.append(val)
+        if vals:
+            return key, vals
+    return None, []
+
+
+def measurement_distribution_scores(
+    measurements: list[dict[str, Any]],
+    *,
+    response_keys: list[str] | None = None,
+    risk_keys: list[str] | None = None,
+    axis_keys: list[str] | None = None,
+) -> dict[str, Any]:
+    """Estimate EIG and risk from observed measurement spread, not fixed constants."""
+    if not measurements:
+        return {
+            "expected_information_gain": 0.2,
+            "risk_level": 0.6,
+            "score_basis": {
+                "n_measurements": 0,
+                "reason": "no measurements available",
+            },
+        }
+
+    response_key, values = _numeric_values(
+        measurements,
+        response_keys or ["objective_score", "sigma_S_cm_mean", "response", "y"],
+    )
+    if not values:
+        return {
+            "expected_information_gain": 0.2,
+            "risk_level": 0.6,
+            "score_basis": {
+                "n_measurements": len(measurements),
+                "reason": "no numeric response column found",
+            },
+        }
+
+    values_sorted = sorted(values, reverse=True)
+    best = values_sorted[0]
+    second = values_sorted[1] if len(values_sorted) > 1 else best
+    mean_abs = sum(abs(v) for v in values) / len(values)
+    response_range = max(values) - min(values)
+    response_range_ratio = response_range / (mean_abs + 1e-12)
+    cv = _pstdev(values) / (mean_abs + 1e-12) if len(values) > 1 else 0.0
+    margin_ratio = (best - second) / (response_range + 1e-12) if response_range > 0 else 0.0
+    ambiguity = 1.0 - _clamp(margin_ratio)
+
+    best_row = max(measurements, key=lambda row: _safe_float(row.get(response_key), float("-inf")))
+    edge_best = 0.0
+    for axis_key in axis_keys or ["x1", "u1", "fraction_mol_pct", "dwell_time_h", "temperature_c"]:
+        axis_vals = [_safe_float(row.get(axis_key), math.nan) for row in measurements]
+        axis_vals = [v for v in axis_vals if math.isfinite(v)]
+        if len(axis_vals) < 3:
+            continue
+        best_axis = _safe_float(best_row.get(axis_key), math.nan)
+        if not math.isfinite(best_axis):
+            continue
+        lo, hi = min(axis_vals), max(axis_vals)
+        span = hi - lo
+        if span <= 1e-12:
+            continue
+        position = (best_axis - lo) / span
+        if position <= 0.12 or position >= 0.88:
+            edge_best = 1.0
+            break
+
+    risk_key, risk_values = _numeric_values(
+        measurements,
+        risk_keys or ["phase_proxy_mean", "stability_pass", "risk_score"],
+    )
+    risk_from_metric = None
+    if risk_key == "phase_proxy_mean" and risk_values:
+        below_threshold = sum(1 for v in risk_values if v < 0.82) / len(risk_values)
+        worst_deficit = max(0.0, 0.82 - min(risk_values)) / 0.82
+        risk_from_metric = _clamp(0.12 + 0.58 * below_threshold + 0.3 * worst_deficit)
+    elif risk_key == "stability_pass" and risk_values:
+        failures = sum(1 for v in risk_values if v < 0.5) / len(risk_values)
+        risk_from_metric = _clamp(0.1 + 0.75 * failures)
+    elif risk_key == "risk_score" and risk_values:
+        risk_from_metric = _clamp(sum(risk_values) / len(risk_values))
+
+    eig = _clamp(0.12 + 0.34 * min(1.0, response_range_ratio) + 0.24 * min(1.0, cv) + 0.22 * ambiguity)
+    if risk_from_metric is None:
+        risk = _clamp(0.12 + 0.3 * min(1.0, cv) + 0.24 * edge_best + 0.18 * ambiguity)
+    else:
+        risk = _clamp(0.7 * risk_from_metric + 0.18 * edge_best + 0.12 * min(1.0, cv))
+
+    return {
+        "expected_information_gain": round(eig, 4),
+        "risk_level": round(risk, 4),
+        "score_basis": {
+            "n_measurements": len(measurements),
+            "response_key": response_key,
+            "response_min": round(min(values), 6),
+            "response_max": round(max(values), 6),
+            "response_cv": round(cv, 6),
+            "top_margin_ratio": round(margin_ratio, 6),
+            "risk_key": risk_key,
+            "edge_best": bool(edge_best),
+            "method": "measurement_distribution",
+        },
+    }
+
+
+def _safe_float(value: Any, default: float) -> float:
+    try:
+        out = float(value)
+    except (TypeError, ValueError):
+        return default
+    return out if math.isfinite(out) else default
+
+
 def aggregate_series(measurements: list[dict[str, Any]]) -> dict[str, Any]:
     """Series for plotting built from a concrete measured slice to match visible observations."""
     if not measurements:
@@ -399,6 +525,7 @@ def recommend_next_from_measurements(measurements: list[dict[str, Any]], fp: dic
             "recommendation": "Acquire richer literature or broaden the goal to unlock a design grid.",
             "expected_information_gain": 0.2,
             "risk_level": 0.6,
+            "score_basis": {"n_measurements": 0, "reason": "no measurements available"},
         }
     best = max(measurements, key=lambda m: float(m["sigma_S_cm_mean"]))
     if "fraction_mol_pct" in best:
@@ -413,13 +540,18 @@ def recommend_next_from_measurements(measurements: list[dict[str, Any]], fp: dic
         span = 1.0 + fp["mean_similarity"] * 1.5
         lo, hi = max(0.5, bf - span), bf + span
         axis_note = f"Refine dwell time near {bf:.2f} h (suggested window {lo:.2f}–{hi:.2f} h)"
-    eigs = min(0.98, 0.55 + fp["mean_relevance"] * 0.35)
-    risk = max(0.08, 0.45 - fp["mean_relevance"] * 0.25)
+    scores = measurement_distribution_scores(
+        measurements,
+        response_keys=["sigma_S_cm_mean"],
+        risk_keys=["phase_proxy_mean"],
+        axis_keys=[primary_axis, "temperature_c"],
+    )
     return {
         "recommendation": f"{axis_note} with extra temperature points around {best['temperature_c']} °C.",
         "primary_axis": primary_axis,
-        "expected_information_gain": round(eigs, 3),
-        "risk_level": round(risk, 3),
+        "expected_information_gain": scores["expected_information_gain"],
+        "risk_level": scores["risk_level"],
+        "score_basis": scores["score_basis"],
         "anchor_study_dois": [r.get("doi") for r in fp.get("study_refs", []) if r.get("doi")][:3],
     }
 
