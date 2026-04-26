@@ -1,14 +1,31 @@
-import { Play, Download, Home } from "lucide-react";
+import { Download, Home, Play, ShieldCheck } from "lucide-react";
 import { motion } from "motion/react";
 
 interface HeaderProps {
   runId: string;
   experimentName: string;
+  workflowState?: string;
   status: "Draft" | "Scheduled" | "Running" | "Failed" | "Completed";
   onHomeClick?: () => void;
+  onAdvance?: () => void;
+  onApprove?: () => void;
+  onExportReport?: () => void;
+  showApprove?: boolean;
+  actionBusy?: boolean;
 }
 
-export function Header({ runId, experimentName, status, onHomeClick }: HeaderProps) {
+export function Header({
+  runId,
+  experimentName,
+  workflowState,
+  status,
+  onHomeClick,
+  onAdvance,
+  onApprove,
+  onExportReport,
+  showApprove,
+  actionBusy,
+}: HeaderProps) {
   const statusColors = {
     Draft: "bg-slate-500",
     Scheduled: "bg-teal-600",
@@ -65,8 +82,11 @@ export function Header({ runId, experimentName, status, onHomeClick }: HeaderPro
         <div className="h-8 w-px bg-amber-300" />
 
         <div className="flex flex-col">
-          <div className="text-xs text-stone-600 font-mono">{runId}</div>
-          <div className="text-sm text-stone-900">{experimentName}</div>
+          <div className="text-xs text-stone-600 font-mono">
+            {runId}
+            {workflowState ? <span className="text-stone-500"> · {workflowState}</span> : null}
+          </div>
+          <div className="text-sm text-stone-900 line-clamp-2">{experimentName}</div>
         </div>
       </div>
 
@@ -84,15 +104,41 @@ export function Header({ runId, experimentName, status, onHomeClick }: HeaderPro
           {status}
         </div>
 
-        <button className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white rounded flex items-center gap-2 transition-colors">
-          <Play className="w-4 h-4" />
-          Run Experiment
-        </button>
+        {onAdvance && (
+          <button
+            type="button"
+            disabled={actionBusy}
+            onClick={onAdvance}
+            className="px-4 py-2 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white rounded flex items-center gap-2 transition-colors"
+          >
+            <Play className="w-4 h-4" />
+            Advance
+          </button>
+        )}
 
-        <button className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white rounded flex items-center gap-2 transition-colors">
-          <Download className="w-4 h-4" />
-          Export Report
-        </button>
+        {showApprove && onApprove && (
+          <button
+            type="button"
+            disabled={actionBusy}
+            onClick={onApprove}
+            className="px-4 py-2 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white rounded flex items-center gap-2 transition-colors"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            Approve
+          </button>
+        )}
+
+        {onExportReport && (
+          <button
+            type="button"
+            disabled={actionBusy}
+            onClick={onExportReport}
+            className="px-4 py-2 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white rounded flex items-center gap-2 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Export Report
+          </button>
+        )}
       </div>
     </header>
   );

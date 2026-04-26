@@ -1,0 +1,165 @@
+{
+  "run_id": "RUN-20260425210735645549",
+  "user_goal": "alzheimers microglia TREM2 agonist cognitive decline randomized trial",
+  "state": "INTAKE_COMPLETE",
+  "pipeline": {
+    "intake": {
+      "parsed_goal": {
+        "objective": "alzheimers microglia TREM2 agonist cognitive decline randomized trial",
+        "domain": "materials_discovery",
+        "entities": [
+          "dopant",
+          "temperature",
+          "conductivity"
+        ]
+      },
+      "literature": {
+        "source": "crossref",
+        "studies": [
+          {
+            "title": "Different splice isoforms of peripheral TREM2 mRNA expressions are associated with cognitive decline in mild dementia due to Alzheimer’s disease and reflect central microglia activation",
+            "authors": "Yi-Kuan Chiang, Yung-Shuan Lin, Chun-Yu Chen, Jiing-Feng Lirng",
+            "year": 2023,
+            "doi": "10.21203/rs.3.rs-2648386/v1",
+            "url": "https://doi.org/10.21203/rs.3.rs-2648386/v1",
+            "source": "crossref",
+            "abstract": "Abstract Background Triggering receptor expressed on myeloid cells 2 (TREM2) is upregulated in activated microglia and may be related to cognitive decline in patients with Alzheimer’s disease (AD). There is conflicting evidence regarding the association of peripheral levels of TREM2 mRNA expression and soluble TREM2 (the extracellular domain of TREM2) with cognitive function in patients with AD. The correlation between peripheral TREM2 mRNA expression and neuroinflammation is unclear. Methods We recruited subjects with mild dementia due to AD (clinical dementia rating = 0.5 or 1) and healthy controls. Quantitative real-time polymerase chain reaction analysis was performed using two types of primers. One detects all peripheral TREM2 mRNA isoforms, and the other is specific for TREM2 alt . In a subgroup of patients with AD, magnetic resonance spectroscopy (MRS) was used to measure the myo-inositol (mI) level in the posterior cingulate cortex, which is considered a marker for microglial activation. We analyzed the difference in mRNA expression between the two groups and the association between mRNA expression and cognition and mI levels. Results We recruited 61 patients with AD and 51 healthy controls. A one-way analysis of covariance adjusted for covariates showed higher TREM2 and TREM2 alt mRNA expression levels in the AD group than in the control group ( p = 0.013 and p = 0.001, respectively). Correlation analysis and linear regression examining the association between the mRNA expression levels and mini-mental state examination score showed a positive correlation in patients with AD (TREM2, rs = 0.305, p = 0.017, adjusted p = 0.001; TREM2 alt , rs = 0.302, p = 0.018, adjusted p = 0.009) but not in the control group. Subgroup analysis of 25 AD patients with MRS showed a negative correlation between mRNA expression and mI levels (TREM2, rs = -0.426, p = 0.034, adjusted p = 0.032; TREM2 alt , rs = -0.447, p = 0.025, adjusted p = 0.028). Conclusions Increased TREM2 and TREM2 alt mRNA expression is associated with AD pathogenesis at the mild dementia stage, thereby serving as a potential biomarker for the early symptomatic stage of AD. TREM2 may exert protective effects on both cognition and microglia-mediated neuroinflammation.",
+            "exists": true,
+            "relevance": 0.5,
+            "methodology": "Abstract Background Triggering receptor expressed on myeloid cells 2 (TREM2) is upregulated in activated microglia and may be related to cognitive decline in patients with Alzheimer’s disease (AD). There is conflictin...",
+            "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+            "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+            "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+            "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+            "evidence_level": "abstract"
+          },
+          {
+            "title": "EFFECT OF HEARING INTERVENTION ON OLDER ADULTS AT RISK OF COGNITIVE DECLINE: ACHIEVE RANDOMIZED TRIAL",
+            "authors": "James Pike",
+            "year": 2024,
+            "doi": "10.1093/geroni/igae098.0057",
+            "url": "https://doi.org/10.1093/geroni/igae098.0057",
+            "source": "crossref",
+            "abstract": "Abstract The Aging and Cognitive Health Evaluation in Elders (ACHIEVE, Clinicaltrials.gov Identifier: NCT03243422) randomized trial investigated the effect of a hearing intervention versus a health education control on 3-year cognitive change among dementia-free older adults with untreated hearing loss. Participants were recruited from the Atherosclerosis Risk in Communities (ARIC) study (n=238) or de novo from the community (n=739). The hearing intervention slowed cognitive decline by 48% in ARIC participants, but not in healthy de novo volunteers. A possible explanation for this difference is that the cognitive benefits of the hearing intervention could be observed only for individuals at increased risk for cognitive decline. To evaluate whether risk of cognitive decline moderated the effect of the hearing intervention, we used a sample of dementia-free ARIC participants (N=2,692) who did not participate in ACHIEVE to develop a model that explained 80.7% of the variance in cognitive decline over a 6-year period. The model was applied to baseline measures of ACHIEVE participants (N=977) to calculate their predicted risk of cognitive decline. The covariate-adjusted, intention-to-treat effect of the hearing intervention on 3-year cognitive change was examined in a mixed effects model that included a three-way interaction between time, randomization, and predicted risk of cognitive decline. Among participants in the top quartile of risk, cognitive decline in the hearing intervention group was 58.1% (95% CI 31.4%-90.9%) slower than the control group. The results suggest the effect of a hearing intervention on 3-year cognitive change was greatest among individuals at higher risk of cognitive decline.",
+            "exists": true,
+            "relevance": 0.5,
+            "methodology": "Abstract The Aging and Cognitive Health Evaluation in Elders (ACHIEVE, Clinicaltrials.gov Identifier: NCT03243422) randomized trial investigated the effect of a hearing intervention versus a health education control o...",
+            "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+            "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+            "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+            "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+            "evidence_level": "abstract"
+          },
+          {
+            "title": "THE ACHIEVE RANDOMIZED TRIAL: EFFECT OF HEARING LOSS INTERVENTION ON COGNITIVE DECLINE IN OLDER ADULTS",
+            "authors": "Jennifer Deal",
+            "year": 2023,
+            "doi": "10.1093/geroni/igad104.0295",
+            "url": "https://doi.org/10.1093/geroni/igad104.0295",
+            "source": "crossref",
+            "abstract": "Abstract Hearing loss in older adults is linked to accelerated cognitive decline and incident dementia in population-based observational studies; whether intervention can reduce cognitive decline is unknown. The multi-center NIH-funded ACHIEVE randomized controlled trial is testing efficacy of a best-practices hearing intervention (amplification and rehabilitation) versus a successful aging health education control intervention, on 3-year cognitive decline in 977 dementia-free adults aged 70-84 years with untreated mild-to-moderate hearing loss. This presentation will describe results for the primary outcome of 3-year cognitive decline, measured using a 10-item neurocognitive battery summarized using latent variable methods. Secondary outcomes include (1) domain-specific cognitive declines in memory, language and executive function and (2) time until cognitive impairment defined as a composite of adjudicated dementia or mild cognitive impairment diagnosis, a 3-point drop in the 30-item Mini-Mental State Exam (MMSE) administered in-person, or a 3-point drop in a factor score derived from the 10-item MMSE orientation subscale and 11-item Blessed scale administered over the phone and rescaled to be equivalent to the 30-item MMSE. The trial is ongoing with data closeout March/April 2023; data will be analyzed per the ACHIEVE Coordinating Center statistical analysis plan, approved by the NIA and ACHIEVE DSMB. Although preliminary results are not possible to include here to protect trial integrity, results will be available to present for GSA. ACHIEVE is the first large-scale randomized study to determine if hearing loss intervention reduces cognitive decline. Whether findings are positive or null, this study will have substantial clinical and public health impact.",
+            "exists": true,
+            "relevance": 0.5,
+            "methodology": "Abstract Hearing loss in older adults is linked to accelerated cognitive decline and incident dementia in population-based observational studies; whether intervention can reduce cognitive decline is unknown. The multi...",
+            "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+            "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+            "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+            "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+            "evidence_level": "abstract"
+          },
+          {
+            "title": "Body, Brain, Life for Cognitive Decline (BBL-CD): protocol for a multidomain dementia risk reduction randomized controlled trial for subjective cognitive decline and mild cognitive impairment",
+            "authors": "Mitchell McMaster, Sarang Kim, Linda Clare, Susan J Torres",
+            "year": 2018,
+            "doi": "10.2147/cia.s182046",
+            "url": "https://doi.org/10.2147/cia.s182046",
+            "source": "crossref",
+            "abstract": "",
+            "exists": true,
+            "relevance": 0.5,
+            "methodology": "Body, Brain, Life for Cognitive Decline (BBL-CD) | CIA | Dove Medical Press Javascript is currently disabled in your browser. Several features of this site will not function whilst javascript is disabled. Skip to main...",
+            "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+            "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+            "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+            "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+            "evidence_level": "fulltext"
+          },
+          {
+            "title": "A Transport Vehicle‐enabled TREM2 agonist antibody induces putative transcription factor activation in microglia",
+            "authors": "Kathryn M. Monroe",
+            "year": 2024,
+            "doi": "10.1002/alz.090395",
+            "url": "https://doi.org/10.1002/alz.090395",
+            "source": "crossref",
+            "abstract": "Abstract Background Loss‐of‐function variants of TREM2 are associated with increased risk of Alzheimer’s disease (AD), suggesting that activation of this innate immune receptor may be a useful therapeutic strategy. We’ve previously described a high‐affinity mouse TREM2‐activating antibody engineered with a monovalent transferrin receptor (TfR) binding site, termed antibody transport vehicle (ATV), ATV:4D9. Single‐cell RNA sequencing and morphometry revealed that ATV:4D9 shifted microglia to metabolically responsive states, which were distinct from those induced by amyloid pathology. However, the factors mediating ATV:4D9‐induced transcriptional responses in microglia is not known. Method We performed fluorescence‐activated nuclei sorting (FANS) to isolate PU.1+ microglial nuclei from frozen brain tissue followed by assaying for transposase‐accessible chromatin with sequencing (ATAC‐Seq) to determine regions of accessible chromatin in the microglial genome. Result We identified changes in chromatin accessibility that are observed in microglia dosed with ATV:4D9 compared to isotype control antibody. Bioinformatic analysis identified motifs for putative regulatory transcription factors in ATV:4D9‐activated enhancers. Conclusion Our data provide insights into putative transcription factors that mediate microglial state changes in response to ATV:4D9, which further elucidates mechanisms of TREM2 agonism.",
+            "exists": true,
+            "relevance": 0.375,
+            "methodology": "Abstract Background Loss‐of‐function variants of TREM2 are associated with increased risk of Alzheimer’s disease (AD), suggesting that activation of this innate immune receptor may be a useful therapeutic strategy. We...",
+            "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+            "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+            "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+            "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+            "evidence_level": "abstract"
+          }
+        ],
+        "reason": null
+      },
+      "prior_work": {
+        "novelty_score": 6.2,
+        "redundancy_score": 4.8,
+        "known_runs": [
+          "RUN-1247",
+          "RUN-1289",
+          "RUN-1301"
+        ]
+      },
+      "claim_graph": {
+        "main_claim": "Literature suggests targeted doping can improve measured conductivity in candidate materials.",
+        "weakest_claim": "Performance gains remain stable under broader operating conditions.",
+        "next_target": "Validate stability-focused claims for top-ranked relevant compositions."
+      }
+    },
+    "planning": {
+      "compiler": {},
+      "schedule": {}
+    },
+    "runtime": {
+      "execution": {},
+      "recovery": {},
+      "validation": {},
+      "results": {}
+    },
+    "outcomes": {
+      "next_experiment": {},
+      "report": {}
+    }
+  },
+  "provenance": [
+    {
+      "time": "2026-04-25T21:07:45.745956+00:00",
+      "event_type": "STATE",
+      "category": "Intake",
+      "message": "Goal parsed into structured intent"
+    },
+    {
+      "time": "2026-04-25T21:07:45.746022+00:00",
+      "event_type": "MODEL",
+      "category": "Intake",
+      "message": "Literature retrieved from Crossref with deterministic scoring"
+    },
+    {
+      "time": "2026-04-25T21:07:45.746030+00:00",
+      "event_type": "MODEL",
+      "category": "Intake",
+      "message": "Novelty and prior-work overlap scored"
+    },
+    {
+      "time": "2026-04-25T21:07:45.746042+00:00",
+      "event_type": "DECISION",
+      "category": "Intake",
+      "message": "Weakest claim selected for planning focus"
+    }
+  ],
+  "created_at": "2026-04-25T21:07:35.645924+00:00",
+  "updated_at": "2026-04-25T21:07:45.746101+00:00"
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://helixlabs.local/contracts/run.schema.json",
+  "title": "HelixLabs Run",
+  "type": "object",
+  "required": [
+    "run_id",
+    "user_goal",
+    "state",
+    "pipeline",
+    "updated_at"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "pattern": "^RUN-[A-Z0-9-]+$"
+    },
+    "user_goal": {
+      "type": "string",
+      "minLength": 8
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "INTAKE_COMPLETE",
+        "PLANNING_COMPLETE",
+        "RUNTIME_COMPLETE",
+        "OUTCOMES_COMPLETE"
+      ]
+    },
+    "pipeline": {
+      "type": "object",
+      "required": [
+        "intake",
+        "planning",
+        "runtime",
+        "outcomes"
+      ],
+      "properties": {
+        "intake": { "type": "object" },
+        "planning": { "type": "object" },
+        "runtime": { "type": "object" },
+        "outcomes": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

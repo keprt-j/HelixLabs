@@ -1,0 +1,176 @@
+{
+  "run_id": "RUN-20260425224121730838",
+  "user_goal": "One-time search test: solid electrolyte conductivity vs temperature for batteries",
+  "state": "CLAIM_GRAPH_BUILT",
+  "pipeline": {
+    "intake": {
+      "parsed_goal": {
+        "domain": "materials_discovery",
+        "objective": "One-time search test: solid electrolyte conductivity vs temperature for batteries",
+        "entities": [
+          "dopant",
+          "temperature",
+          "conductivity",
+          "stability"
+        ]
+      },
+      "literature": {
+        "source": "crossref",
+        "studies": [
+          {
+            "title": "In search of the best solid electrolyte-layered oxide pair in all-solid-state batteries",
+            "authors": "Tuncay Koç",
+            "year": 2026,
+            "doi": "10.70675/b94b7604z8585z4d59z9632z14c5e0ae2bb3",
+            "url": "https://doi.org/10.70675/b94b7604z8585z4d59z9632z14c5e0ae2bb3",
+            "source": "crossref",
+            "abstract": "À la recherche de la meilleure paire électrolyte solide-oxyde en couche dans les batteries à l'état solide Les batteries à l'état solide (ASSB) qui reposent sur l'utilisation d'électrolytes solides (SE) à conductivité ionique élevée sont le Saint-Graal de la future technologie des batteries, car elles pourraient théoriquement permettre une augmentation de près de 70 et 40 % des densités d'énergie volumétrique (Wh/l) et gravimétrique (Wh/kg), respectivement, ainsi qu'une sécurité accrue par rapport à la technologie des batteries au lithium-ion. À cette fin, la dernière décennie a vu le développement des ASSB, principalement grâce à des SE à base de sulfure, en raison de leurs propriétés intrinsèques favorables. Toutefois, ces progrès n'ont pas permis de mettre au point des ASSB pratiques et performants en raison des réactions complexes de décomposition interfaciale qui se produisent aux électrodes négative et positive et qui entraînent une détérioration de la durée de vie des cycles. En se concentrant sur l'électrode positive, cela nécessite une meilleure compréhension de la compatibilité électrochimique/chimique des SE qui est cruellement nécessaire pour les applications du monde réel.Ce travail vise à fournir des réponses concernant la meilleure paire d'oxyde en couche SE dans la cathode composite pour les ASSB. En menant une étude systématique sur l'effet de la nature des SE sur les performances des batteries, nous montrons que les performances de Li6PS5Cl rivalisent avec celles de Li3InCl6, surpassant toutes deux celles de β-Li3PS4 et ce, indépendamment de la voie de synthèse. Ces performances sont préservées lors de l'assemblage de piles à l'état solide, puisque l'appariement de Li6PS5Cl avec une cathode en oxyde stratifié présente la meilleure rétention en cas de cyclage. Cette étude révèle également que les halogénures réagissent avec les sulfures dans les cellules hétérostructurées, ce qui entraîne une diminution rapide de la capacité en cas de cyclage en raison de réactions de décomposition interfaciales. Pour éliminer ce processus de dégradation interfaciale, nous proposons une stratégie d'ingénierie de surface qui permet d'atténuer la détérioration de la surface et de débloquer des ASSB très performants. Enfin, l'analyse électrochimique, structurelle et spectroscopique combinée démontre que Li3InCl6 ne peut pas résister à des potentiels d'oxydation plus élevés, ce qui entraîne des produits de décomposition contrairement à ce que les calculs théoriques prévoyaient.",
+            "exists": true,
+            "relevance": 0.86,
+            "title_similarity": 0.4,
+            "methodology": "À la recherche de la meilleure paire électrolyte solide-oxyde en couche dans les batteries à l'état solide Les batteries à l'état solide (ASSB) qui reposent sur l'utilisation d'électrolytes solides (SE) à conductivité...",
+            "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+            "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+            "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+            "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+            "evidence_level": "abstract",
+            "similarity": 0.607
+          }
+        ],
+        "reason": null
+      },
+      "prior_work": {
+        "novelty_score": 3.1,
+        "redundancy_score": 7.9,
+        "known_runs": [
+          "RUN-1247",
+          "RUN-1289",
+          "RUN-1301"
+        ],
+        "gap": "Intermediate conditions and boundary stability remain under-sampled."
+      },
+      "claim_graph": {
+        "main_claim": "Targeted doping can improve the target property while preserving stability.",
+        "weakest_claim": "Performance gains persist under stricter boundary conditions.",
+        "next_target": "Test boundary condition where stability uncertainty is highest.",
+        "context": {
+          "novelty_score": 3.1,
+          "redundancy_score": 7.9
+        }
+      }
+    },
+    "planning": {
+      "compiler": {},
+      "schedule": {}
+    },
+    "runtime": {
+      "execution": {},
+      "recovery": {},
+      "validation": {},
+      "results": {}
+    },
+    "outcomes": {
+      "next_experiment": {},
+      "report": {}
+    }
+  },
+  "artifacts": {
+    "scientific_intent": {
+      "domain": "materials_discovery",
+      "objective": "One-time search test: solid electrolyte conductivity vs temperature for batteries",
+      "entities": [
+        "dopant",
+        "temperature",
+        "conductivity",
+        "stability"
+      ]
+    },
+    "literature": {
+      "source": "crossref",
+      "studies": [
+        {
+          "title": "In search of the best solid electrolyte-layered oxide pair in all-solid-state batteries",
+          "authors": "Tuncay Koç",
+          "year": 2026,
+          "doi": "10.70675/b94b7604z8585z4d59z9632z14c5e0ae2bb3",
+          "url": "https://doi.org/10.70675/b94b7604z8585z4d59z9632z14c5e0ae2bb3",
+          "source": "crossref",
+          "abstract": "À la recherche de la meilleure paire électrolyte solide-oxyde en couche dans les batteries à l'état solide Les batteries à l'état solide (ASSB) qui reposent sur l'utilisation d'électrolytes solides (SE) à conductivité ionique élevée sont le Saint-Graal de la future technologie des batteries, car elles pourraient théoriquement permettre une augmentation de près de 70 et 40 % des densités d'énergie volumétrique (Wh/l) et gravimétrique (Wh/kg), respectivement, ainsi qu'une sécurité accrue par rapport à la technologie des batteries au lithium-ion. À cette fin, la dernière décennie a vu le développement des ASSB, principalement grâce à des SE à base de sulfure, en raison de leurs propriétés intrinsèques favorables. Toutefois, ces progrès n'ont pas permis de mettre au point des ASSB pratiques et performants en raison des réactions complexes de décomposition interfaciale qui se produisent aux électrodes négative et positive et qui entraînent une détérioration de la durée de vie des cycles. En se concentrant sur l'électrode positive, cela nécessite une meilleure compréhension de la compatibilité électrochimique/chimique des SE qui est cruellement nécessaire pour les applications du monde réel.Ce travail vise à fournir des réponses concernant la meilleure paire d'oxyde en couche SE dans la cathode composite pour les ASSB. En menant une étude systématique sur l'effet de la nature des SE sur les performances des batteries, nous montrons que les performances de Li6PS5Cl rivalisent avec celles de Li3InCl6, surpassant toutes deux celles de β-Li3PS4 et ce, indépendamment de la voie de synthèse. Ces performances sont préservées lors de l'assemblage de piles à l'état solide, puisque l'appariement de Li6PS5Cl avec une cathode en oxyde stratifié présente la meilleure rétention en cas de cyclage. Cette étude révèle également que les halogénures réagissent avec les sulfures dans les cellules hétérostructurées, ce qui entraîne une diminution rapide de la capacité en cas de cyclage en raison de réactions de décomposition interfaciales. Pour éliminer ce processus de dégradation interfaciale, nous proposons une stratégie d'ingénierie de surface qui permet d'atténuer la détérioration de la surface et de débloquer des ASSB très performants. Enfin, l'analyse électrochimique, structurelle et spectroscopique combinée démontre que Li3InCl6 ne peut pas résister à des potentiels d'oxydation plus élevés, ce qui entraîne des produits de décomposition contrairement à ce que les calculs théoriques prévoyaient.",
+          "exists": true,
+          "relevance": 0.86,
+          "title_similarity": 0.4,
+          "methodology": "À la recherche de la meilleure paire électrolyte solide-oxyde en couche dans les batteries à l'état solide Les batteries à l'état solide (ASSB) qui reposent sur l'utilisation d'électrolytes solides (SE) à conductivité...",
+          "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+          "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+          "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+          "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+          "evidence_level": "abstract",
+          "similarity": 0.607
+        }
+      ],
+      "reason": null
+    },
+    "prior_work": {
+      "novelty_score": 3.1,
+      "redundancy_score": 7.9,
+      "known_runs": [
+        "RUN-1247",
+        "RUN-1289",
+        "RUN-1301"
+      ],
+      "gap": "Intermediate conditions and boundary stability remain under-sampled."
+    },
+    "negative_results": {
+      "negative_results": [
+        {
+          "condition": "high dopant fraction",
+          "failure_type": "stability_threshold_failed",
+          "recommendation": "Avoid upper-bound concentrations without boundary mapping"
+        }
+      ]
+    },
+    "claim_graph": {
+      "main_claim": "Targeted doping can improve the target property while preserving stability.",
+      "weakest_claim": "Performance gains persist under stricter boundary conditions.",
+      "next_target": "Test boundary condition where stability uncertainty is highest.",
+      "context": {
+        "novelty_score": 3.1,
+        "redundancy_score": 7.9
+      }
+    }
+  },
+  "provenance": [
+    {
+      "time": "2026-04-25T22:41:21.731652+00:00",
+      "event_type": "STATE",
+      "category": "Intake",
+      "message": "Goal parsed into structured intent"
+    },
+    {
+      "time": "2026-04-25T22:41:26.470284+00:00",
+      "event_type": "MODEL",
+      "category": "Intake",
+      "message": "Literature retrieved from Crossref with deterministic scoring"
+    },
+    {
+      "time": "2026-04-25T22:41:26.470979+00:00",
+      "event_type": "MODEL",
+      "category": "Intake",
+      "message": "Novelty and prior-work overlap scored"
+    },
+    {
+      "time": "2026-04-25T22:41:26.471517+00:00",
+      "event_type": "STATE",
+      "category": "Intake",
+      "message": "Negative-results memory checked"
+    },
+    {
+      "time": "2026-04-25T22:41:26.471928+00:00",
+      "event_type": "DECISION",
+      "category": "Intake",
+      "message": "Weakest claim selected for planning focus"
+    }
+  ],
+  "created_at": "2026-04-25T22:41:21.730906+00:00",
+  "updated_at": "2026-04-25T22:41:26.471932+00:00"
+}

@@ -1,0 +1,1959 @@
+{
+  "run_id": "RUN-20260426004029752327",
+  "user_goal": "Optimize ionic conductivity of Fe-doped LLZO solid electrolytes across temperature while preserving phase stability.",
+  "state": "MEMORY_UPDATED",
+  "pipeline": {
+    "intake": {
+      "parsed_goal": {
+        "domain": "materials_discovery",
+        "objective": "Optimize ionic conductivity of Fe-doped LLZO solid electrolytes across temperature while preserving phase stability.",
+        "entities": [
+          "composition",
+          "temperature",
+          "transport",
+          "stability"
+        ]
+      },
+      "literature": {
+        "source": "crossref",
+        "studies": [
+          {
+            "title": "IONIC CONDUCTIVITY AT ROOM TEMPERATURE AND THERMAL STABILITY OF CHLORINE-CONDUCTING SOLID ELECTROLYTES",
+            "authors": "N. I. Sorokin",
+            "year": 2023,
+            "doi": "10.31857/s0023476123020170",
+            "url": "https://doi.org/10.31857/s0023476123020170",
+            "source": "crossref",
+            "abstract": "Search for chlorine-conducting solid electrolytes with a high ionic conductivity σ293K at room temperature (293 K) is based on the analysis of temperature measurements of the electrical conductivity σ(T) of simple and complex compounds, solid solutions, composites, and glasses. A comparison of the thermal stability of chlorides is based on the analysis of the dependences σ(T) in cyclic heating–cooling measurements and the physicochemical data. Maximum σ293 K values were found for the solid solutions (3 × 10−5 S/cm) and (1 × 10−4 S/cm). Promising directions of search for chlorine-ion solid electrolytes for chemical current sources and chlorine sensors operating at room temperature are the method of crystallochemical heterovalent substitutions and implementation of the vacancy mechanism of electrical conductivity in crystal structures of the cotunnite (PbCl2) and fluorite (CaF2) types. The parameters of the ionic conductivity of cotunnite and fluorite crystals of chlorides and fluorides are analyzed.",
+            "exists": true,
+            "relevance": 0.86,
+            "title_similarity": 0.462,
+            "methodology": "Search for chlorine-conducting solid electrolytes with a high ionic conductivity σ293K at room temperature (293 K) is based on the analysis of temperature measurements of the electrical conductivity σ(T) of simple and...",
+            "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+            "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+            "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+            "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+            "evidence_level": "abstract",
+            "similarity": 0.641
+          },
+          {
+            "title": "Phase Stability and Ionic Conductivity of\n                                                Doped-CeO/YSZ Electrolytes",
+            "authors": "N.M. Sammes",
+            "year": 1997,
+            "doi": "10.1149/199740.1105pv",
+            "url": "https://doi.org/10.1149/199740.1105pv",
+            "source": "crossref",
+            "abstract": "",
+            "exists": true,
+            "relevance": 0.769,
+            "title_similarity": 0.462,
+            "methodology": "Radware Bot Manager Captcha We apologize for the inconvenience... To ensure we keep this website safe, please can you confirm you are a human by ticking the box below. If you are unable to complete the above request p...",
+            "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+            "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+            "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+            "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+            "evidence_level": "fulltext",
+            "similarity": 0.6
+          },
+          {
+            "title": "Effect of Y/Mg Ion Ratio and Phase Assemble on Ionic Conductivity of Multi-Doped Zirconia Ceramic Solid Electrolytes",
+            "authors": "Y.G. Hoo, Yusheng Shi, Wenzhong Lu",
+            "year": 2018,
+            "doi": "10.20944/preprints201812.0047.v1",
+            "url": "https://doi.org/10.20944/preprints201812.0047.v1",
+            "source": "crossref",
+            "abstract": "The phase composition design principle is introduced to obtain balanced properties of ionic conductivity and thermo-tolerant for zirconia solid electrolytes used in solid oxide fuel cells (SOFCs). The zirconia ceramic solid electrolytes are fabricated by two-step free sintering. With increasing Y/Mg ionic ratio from 1.78:1 to 1.88:1, the content of monoclinic phase fluctuates little (&amp;plusmn;3%). The ionic conductivity, including the total electrical resistance; grain electrical resistance and grain boundary electrical resistance at 1223K, are all gradually declining with the increasing of Y/Mg ionic ratio. Furthermore, the enrichment of Mg ion in grain boundary acts as a disincentive to grain boundary ionic conductivity. In addition, the maximum total equivalent conductivity at 1223K in this study reaches to 0.143 Scm-1 which can compare with that of certain YSZ. It will be beneficial to SOFCs application profited from increasing ionic conductivity of ceramic solid electrolytes.",
+            "exists": true,
+            "relevance": 0.671,
+            "title_similarity": 0.462,
+            "methodology": "The phase composition design principle is introduced to obtain balanced properties of ionic conductivity and thermo-tolerant for zirconia solid electrolytes used in solid oxide fuel cells (SOFCs). The zirconia ceramic...",
+            "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+            "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+            "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+            "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+            "evidence_level": "abstract",
+            "similarity": 0.556
+          },
+          {
+            "title": "Ionic Conductivity at Room Temperature and Thermal Stability of Chlorine-Conducting Solid Electrolytes",
+            "authors": "N. I. Sorokin",
+            "year": 2023,
+            "doi": "10.1134/s1063774523020177",
+            "url": "https://doi.org/10.1134/s1063774523020177",
+            "source": "crossref",
+            "abstract": "",
+            "exists": true,
+            "relevance": 0.573,
+            "title_similarity": 0.462,
+            "methodology": "Ionic Conductivity at Room Temperature and Thermal Stability of Chlorine-Conducting Solid Electrolytes | Crystallography Reports | Springer Nature Link Skip to main content Advertisement Log in Menu Find a journal Pub...",
+            "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+            "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+            "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+            "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+            "evidence_level": "fulltext",
+            "similarity": 0.512
+          }
+        ],
+        "reason": null,
+        "main_claim": "Literature suggests targeted doping can improve measured conductivity in candidate materials.",
+        "weakest_claim": "Performance gains remain stable under broader operating conditions.",
+        "next_target": "Validate stability-focused claims for top-ranked relevant compositions.",
+        "novelty_score_hint": 4.3,
+        "redundancy_score_hint": 6.7
+      },
+      "prior_work": {
+        "novelty_score": 4.3,
+        "redundancy_score": 6.7,
+        "known_runs": [
+          "10.31857/s0023476123020170 — IONIC CONDUCTIVITY AT ROOM TEMPERATURE AND THERMAL STABILITY OF CHLORINE",
+          "10.1149/199740.1105pv — Phase Stability and Ionic Conductivity of\n                              ",
+          "10.20944/preprints201812.0047.v1 — Effect of Y/Mg Ion Ratio and Phase Assemble on Ionic Conductivity of Mul",
+          "10.1134/s1063774523020177 — Ionic Conductivity at Room Temperature and Thermal Stability of Chlorine"
+        ],
+        "gap": "Corpus emphasizes IONIC CONDUCTIVITY AT ROOM TEMPERATURE AND THERMAL STABILITY OF CHLORINE-CONDUCTING SOLID …; intermediate operating points may still be under-sampled for your stated goal."
+      },
+      "claim_graph": {
+        "main_claim": "Literature suggests targeted doping can improve measured conductivity in candidate materials.",
+        "weakest_claim": "Performance gains remain stable under broader operating conditions.",
+        "next_target": "Validate stability-focused claims for top-ranked relevant compositions.",
+        "context": {
+          "novelty_score": 4.3,
+          "redundancy_score": 6.7,
+          "source_dois": [
+            "10.31857/s0023476123020170",
+            "10.1149/199740.1105pv",
+            "10.20944/preprints201812.0047.v1",
+            "10.1134/s1063774523020177"
+          ]
+        }
+      }
+    },
+    "planning": {
+      "compiler": {
+        "experiment_type": "literature_conditioned_composition_temperature_screen",
+        "variables": {
+          "fraction_mol_pct": [
+            0.524,
+            2.053,
+            3.583,
+            5.112,
+            6.641,
+            8.171,
+            9.7
+          ],
+          "temperature_c": [
+            298.0,
+            313.0,
+            333.0,
+            353.0,
+            373.0,
+            393.0
+          ]
+        },
+        "design_matrix": [
+          {
+            "fraction_mol_pct": 0.524,
+            "temperature_c": 298.0
+          },
+          {
+            "fraction_mol_pct": 0.524,
+            "temperature_c": 313.0
+          },
+          {
+            "fraction_mol_pct": 0.524,
+            "temperature_c": 333.0
+          },
+          {
+            "fraction_mol_pct": 0.524,
+            "temperature_c": 353.0
+          },
+          {
+            "fraction_mol_pct": 0.524,
+            "temperature_c": 373.0
+          },
+          {
+            "fraction_mol_pct": 0.524,
+            "temperature_c": 393.0
+          },
+          {
+            "fraction_mol_pct": 2.053,
+            "temperature_c": 298.0
+          },
+          {
+            "fraction_mol_pct": 2.053,
+            "temperature_c": 313.0
+          },
+          {
+            "fraction_mol_pct": 2.053,
+            "temperature_c": 333.0
+          },
+          {
+            "fraction_mol_pct": 2.053,
+            "temperature_c": 353.0
+          },
+          {
+            "fraction_mol_pct": 2.053,
+            "temperature_c": 373.0
+          },
+          {
+            "fraction_mol_pct": 2.053,
+            "temperature_c": 393.0
+          },
+          {
+            "fraction_mol_pct": 3.583,
+            "temperature_c": 298.0
+          },
+          {
+            "fraction_mol_pct": 3.583,
+            "temperature_c": 313.0
+          },
+          {
+            "fraction_mol_pct": 3.583,
+            "temperature_c": 333.0
+          },
+          {
+            "fraction_mol_pct": 3.583,
+            "temperature_c": 353.0
+          },
+          {
+            "fraction_mol_pct": 3.583,
+            "temperature_c": 373.0
+          },
+          {
+            "fraction_mol_pct": 3.583,
+            "temperature_c": 393.0
+          },
+          {
+            "fraction_mol_pct": 5.112,
+            "temperature_c": 298.0
+          },
+          {
+            "fraction_mol_pct": 5.112,
+            "temperature_c": 313.0
+          },
+          {
+            "fraction_mol_pct": 5.112,
+            "temperature_c": 333.0
+          },
+          {
+            "fraction_mol_pct": 5.112,
+            "temperature_c": 353.0
+          },
+          {
+            "fraction_mol_pct": 5.112,
+            "temperature_c": 373.0
+          },
+          {
+            "fraction_mol_pct": 5.112,
+            "temperature_c": 393.0
+          },
+          {
+            "fraction_mol_pct": 6.641,
+            "temperature_c": 298.0
+          },
+          {
+            "fraction_mol_pct": 6.641,
+            "temperature_c": 313.0
+          },
+          {
+            "fraction_mol_pct": 6.641,
+            "temperature_c": 333.0
+          },
+          {
+            "fraction_mol_pct": 6.641,
+            "temperature_c": 353.0
+          },
+          {
+            "fraction_mol_pct": 6.641,
+            "temperature_c": 373.0
+          },
+          {
+            "fraction_mol_pct": 6.641,
+            "temperature_c": 393.0
+          },
+          {
+            "fraction_mol_pct": 8.171,
+            "temperature_c": 298.0
+          },
+          {
+            "fraction_mol_pct": 8.171,
+            "temperature_c": 313.0
+          },
+          {
+            "fraction_mol_pct": 8.171,
+            "temperature_c": 333.0
+          },
+          {
+            "fraction_mol_pct": 8.171,
+            "temperature_c": 353.0
+          },
+          {
+            "fraction_mol_pct": 8.171,
+            "temperature_c": 373.0
+          },
+          {
+            "fraction_mol_pct": 8.171,
+            "temperature_c": 393.0
+          },
+          {
+            "fraction_mol_pct": 9.7,
+            "temperature_c": 298.0
+          },
+          {
+            "fraction_mol_pct": 9.7,
+            "temperature_c": 313.0
+          },
+          {
+            "fraction_mol_pct": 9.7,
+            "temperature_c": 333.0
+          },
+          {
+            "fraction_mol_pct": 9.7,
+            "temperature_c": 353.0
+          },
+          {
+            "fraction_mol_pct": 9.7,
+            "temperature_c": 373.0
+          },
+          {
+            "fraction_mol_pct": 9.7,
+            "temperature_c": 393.0
+          }
+        ],
+        "target_claim": "Performance gains remain stable under broader operating conditions.",
+        "simulation": {
+          "version": 1,
+          "seed": 1151401944,
+          "noise_scale_relative": 0.06,
+          "n_replicates": 1,
+          "literature_signal_strength": 0.7183,
+          "n_source_studies": 4,
+          "study_refs": [
+            {
+              "doi": "10.31857/s0023476123020170",
+              "title": "IONIC CONDUCTIVITY AT ROOM TEMPERATURE AND THERMAL STABILITY OF CHLORINE-CONDUCTING SOLID ELECTROLYTES",
+              "relevance": 0.86
+            },
+            {
+              "doi": "10.1149/199740.1105pv",
+              "title": "Phase Stability and Ionic Conductivity of\n                                                Doped-CeO/YSZ Electrolytes",
+              "relevance": 0.769
+            },
+            {
+              "doi": "10.20944/preprints201812.0047.v1",
+              "title": "Effect of Y/Mg Ion Ratio and Phase Assemble on Ionic Conductivity of Multi-Doped Zirconia Ceramic Solid Electrolytes",
+              "relevance": 0.671
+            },
+            {
+              "doi": "10.1134/s1063774523020177",
+              "title": "Ionic Conductivity at Room Temperature and Thermal Stability of Chlorine-Conducting Solid Electrolytes",
+              "relevance": 0.573
+            }
+          ],
+          "extensions": {
+            "description": "Increase HELIX_SIM_N_REPLICATES for Monte Carlo; set HELIX_SIM_NOISE for relative log-normal noise.",
+            "reserved": [
+              "external_backend",
+              "surrogate_model_id",
+              "calibration_run_id"
+            ]
+          }
+        },
+        "literature_fingerprint": {
+          "mean_relevance": 0.71825,
+          "n_studies": 4,
+          "top_tokens": [
+            "thermal",
+            "stability",
+            "solid",
+            "temperature",
+            "ionic",
+            "electrolytes",
+            "conductivity",
+            "phase",
+            "doped",
+            "multi",
+            "assemble"
+          ]
+        }
+      },
+      "schedule": {
+        "schedule_id": "SCH-RUN-20260426004029752327",
+        "total_duration_hours": 13.7,
+        "resource_utilization_pct": 75,
+        "idle_time_hours": 5.8,
+        "design_points": 42,
+        "hours_per_design_point": 0.243
+      }
+    },
+    "runtime": {
+      "execution": {
+        "status": "completed_with_recovery",
+        "current_step": 42,
+        "total_steps": 42,
+        "simulation_config": {
+          "version": 1,
+          "seed": 1151401944,
+          "noise_scale_relative": 0.06,
+          "n_replicates": 1,
+          "literature_signal_strength": 0.7183,
+          "n_source_studies": 4,
+          "study_refs": [
+            {
+              "doi": "10.31857/s0023476123020170",
+              "title": "IONIC CONDUCTIVITY AT ROOM TEMPERATURE AND THERMAL STABILITY OF CHLORINE-CONDUCTING SOLID ELECTROLYTES",
+              "relevance": 0.86
+            },
+            {
+              "doi": "10.1149/199740.1105pv",
+              "title": "Phase Stability and Ionic Conductivity of\n                                                Doped-CeO/YSZ Electrolytes",
+              "relevance": 0.769
+            },
+            {
+              "doi": "10.20944/preprints201812.0047.v1",
+              "title": "Effect of Y/Mg Ion Ratio and Phase Assemble on Ionic Conductivity of Multi-Doped Zirconia Ceramic Solid Electrolytes",
+              "relevance": 0.671
+            },
+            {
+              "doi": "10.1134/s1063774523020177",
+              "title": "Ionic Conductivity at Room Temperature and Thermal Stability of Chlorine-Conducting Solid Electrolytes",
+              "relevance": 0.573
+            }
+          ],
+          "extensions": {
+            "description": "Increase HELIX_SIM_N_REPLICATES for Monte Carlo; set HELIX_SIM_NOISE for relative log-normal noise.",
+            "reserved": [
+              "external_backend",
+              "surrogate_model_id",
+              "calibration_run_id"
+            ]
+          }
+        },
+        "measurements": [
+          {
+            "design_index": 0,
+            "fraction_mol_pct": 0.524,
+            "temperature_c": 298.0,
+            "sigma_S_cm_mean": 0.0124554818,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7342,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 1,
+            "fraction_mol_pct": 0.524,
+            "temperature_c": 313.0,
+            "sigma_S_cm_mean": 0.0116305507,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7474,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 2,
+            "fraction_mol_pct": 0.524,
+            "temperature_c": 333.0,
+            "sigma_S_cm_mean": 0.0131996572,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7521,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 3,
+            "fraction_mol_pct": 0.524,
+            "temperature_c": 353.0,
+            "sigma_S_cm_mean": 0.0142121616,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.761,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 4,
+            "fraction_mol_pct": 0.524,
+            "temperature_c": 373.0,
+            "sigma_S_cm_mean": 0.0123989391,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7613,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 5,
+            "fraction_mol_pct": 0.524,
+            "temperature_c": 393.0,
+            "sigma_S_cm_mean": 0.0147259227,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7473,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 6,
+            "fraction_mol_pct": 2.053,
+            "temperature_c": 298.0,
+            "sigma_S_cm_mean": 0.0171857279,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7987,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 7,
+            "fraction_mol_pct": 2.053,
+            "temperature_c": 313.0,
+            "sigma_S_cm_mean": 0.0162108971,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8059,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 8,
+            "fraction_mol_pct": 2.053,
+            "temperature_c": 333.0,
+            "sigma_S_cm_mean": 0.0158292909,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8163,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 9,
+            "fraction_mol_pct": 2.053,
+            "temperature_c": 353.0,
+            "sigma_S_cm_mean": 0.0175259543,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7969,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 10,
+            "fraction_mol_pct": 2.053,
+            "temperature_c": 373.0,
+            "sigma_S_cm_mean": 0.0168067231,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8004,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 11,
+            "fraction_mol_pct": 2.053,
+            "temperature_c": 393.0,
+            "sigma_S_cm_mean": 0.0172764326,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8312,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 12,
+            "fraction_mol_pct": 3.583,
+            "temperature_c": 298.0,
+            "sigma_S_cm_mean": 0.0211117922,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.87,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 13,
+            "fraction_mol_pct": 3.583,
+            "temperature_c": 313.0,
+            "sigma_S_cm_mean": 0.0205724976,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8837,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 14,
+            "fraction_mol_pct": 3.583,
+            "temperature_c": 333.0,
+            "sigma_S_cm_mean": 0.0190951814,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8793,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 15,
+            "fraction_mol_pct": 3.583,
+            "temperature_c": 353.0,
+            "sigma_S_cm_mean": 0.0206148669,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8692,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 16,
+            "fraction_mol_pct": 3.583,
+            "temperature_c": 373.0,
+            "sigma_S_cm_mean": 0.0194010123,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8596,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 17,
+            "fraction_mol_pct": 3.583,
+            "temperature_c": 393.0,
+            "sigma_S_cm_mean": 0.0208418231,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8927,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 18,
+            "fraction_mol_pct": 5.112,
+            "temperature_c": 298.0,
+            "sigma_S_cm_mean": 0.0195504269,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.9053,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 19,
+            "fraction_mol_pct": 5.112,
+            "temperature_c": 313.0,
+            "sigma_S_cm_mean": 0.0210374712,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.9054,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 20,
+            "fraction_mol_pct": 5.112,
+            "temperature_c": 333.0,
+            "sigma_S_cm_mean": 0.0213894758,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.9005,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 21,
+            "fraction_mol_pct": 5.112,
+            "temperature_c": 353.0,
+            "sigma_S_cm_mean": 0.0200116797,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8792,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 22,
+            "fraction_mol_pct": 5.112,
+            "temperature_c": 373.0,
+            "sigma_S_cm_mean": 0.0189530479,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.9086,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 23,
+            "fraction_mol_pct": 5.112,
+            "temperature_c": 393.0,
+            "sigma_S_cm_mean": 0.0224423373,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8953,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 24,
+            "fraction_mol_pct": 6.641,
+            "temperature_c": 298.0,
+            "sigma_S_cm_mean": 0.0184743997,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8459,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 25,
+            "fraction_mol_pct": 6.641,
+            "temperature_c": 313.0,
+            "sigma_S_cm_mean": 0.0199570015,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8178,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 26,
+            "fraction_mol_pct": 6.641,
+            "temperature_c": 333.0,
+            "sigma_S_cm_mean": 0.0198585934,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8296,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 27,
+            "fraction_mol_pct": 6.641,
+            "temperature_c": 353.0,
+            "sigma_S_cm_mean": 0.0203582498,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8413,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 28,
+            "fraction_mol_pct": 6.641,
+            "temperature_c": 373.0,
+            "sigma_S_cm_mean": 0.0184104195,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.8416,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 29,
+            "fraction_mol_pct": 6.641,
+            "temperature_c": 393.0,
+            "sigma_S_cm_mean": 0.0165509458,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.83,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 30,
+            "fraction_mol_pct": 8.171,
+            "temperature_c": 298.0,
+            "sigma_S_cm_mean": 0.0148535359,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.747,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 31,
+            "fraction_mol_pct": 8.171,
+            "temperature_c": 313.0,
+            "sigma_S_cm_mean": 0.0148240846,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7584,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 32,
+            "fraction_mol_pct": 8.171,
+            "temperature_c": 333.0,
+            "sigma_S_cm_mean": 0.0144566343,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7512,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 33,
+            "fraction_mol_pct": 8.171,
+            "temperature_c": 353.0,
+            "sigma_S_cm_mean": 0.0166340311,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7555,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 34,
+            "fraction_mol_pct": 8.171,
+            "temperature_c": 373.0,
+            "sigma_S_cm_mean": 0.0148419341,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7478,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 35,
+            "fraction_mol_pct": 8.171,
+            "temperature_c": 393.0,
+            "sigma_S_cm_mean": 0.0147860958,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7499,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 36,
+            "fraction_mol_pct": 9.7,
+            "temperature_c": 298.0,
+            "sigma_S_cm_mean": 0.0096385401,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7022,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 37,
+            "fraction_mol_pct": 9.7,
+            "temperature_c": 313.0,
+            "sigma_S_cm_mean": 0.0105634053,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.6788,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 38,
+            "fraction_mol_pct": 9.7,
+            "temperature_c": 333.0,
+            "sigma_S_cm_mean": 0.010005181,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.6826,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 39,
+            "fraction_mol_pct": 9.7,
+            "temperature_c": 353.0,
+            "sigma_S_cm_mean": 0.0093832102,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.694,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 40,
+            "fraction_mol_pct": 9.7,
+            "temperature_c": 373.0,
+            "sigma_S_cm_mean": 0.010255947,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7036,
+            "n_replicates": 1
+          },
+          {
+            "design_index": 41,
+            "fraction_mol_pct": 9.7,
+            "temperature_c": 393.0,
+            "sigma_S_cm_mean": 0.0092056056,
+            "sigma_S_cm_std": 0.0,
+            "phase_proxy_mean": 0.7095,
+            "n_replicates": 1
+          }
+        ],
+        "series_for_charts": [
+          {
+            "label": "Mean σ (S/cm) vs temperature (averaged over composition grid)",
+            "temperature_c": [
+              298.0,
+              313.0,
+              333.0,
+              353.0,
+              373.0,
+              393.0
+            ],
+            "sigma_S_cm": [
+              0.0161814149,
+              0.0163994154,
+              0.016262002,
+              0.0169628791,
+              0.0158668604,
+              0.0165470233
+            ]
+          }
+        ],
+        "recovery_hint": "Low phase_proxy on some cells; surrogate suggests rework or narrowed composition window.",
+        "literature_fingerprint": {
+          "mean_relevance": 0.71825,
+          "n_studies": 4
+        }
+      },
+      "recovery": {
+        "selected_recovery": "narrow_composition_window",
+        "status": "applied",
+        "affected_design_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "notes": "Surrogate phase_proxy dipped below threshold on edge compositions."
+      },
+      "validation": {
+        "validation_status": "repaired",
+        "mapped_columns": {
+          "fraction_mol_pct": "composition_fraction",
+          "temperature_c": "temperature",
+          "sigma_S_cm_mean": "conductivity",
+          "phase_proxy_mean": "phase_quality_proxy"
+        },
+        "validated_records": 42
+      },
+      "results": {
+        "best_condition": {
+          "fraction_mol_pct": 5.112,
+          "temperature_c": 393.0,
+          "sigma_S_cm_mean": 0.0224423373
+        },
+        "stability_risk_condition": {
+          "fraction_mol_pct": 9.7,
+          "temperature_c": 313.0,
+          "phase_proxy_mean": 0.6788
+        },
+        "inference": "Highest modeled conductivity at 5.112 mol% and 393.0 °C (σ ≈ 0.0224423373 S/cm), derived from the literature-conditioned surrogate.",
+        "uncertainty": "Surrogate is not a physical model; uncertainty is epistemic (limited to retrieved abstracts and noise policy)."
+      }
+    },
+    "outcomes": {
+      "next_experiment": {
+        "recommendation": "Refine composition near 5.11 mol% (suggested window 4.28–5.94 mol%) with extra temperature points around 393.0 °C.",
+        "expected_information_gain": 0.801,
+        "risk_level": 0.27,
+        "anchor_study_dois": [
+          "10.31857/s0023476123020170",
+          "10.1149/199740.1105pv",
+          "10.20944/preprints201812.0047.v1"
+        ]
+      },
+      "report": {
+        "title": "HelixLabs experiment report (literature-conditioned simulation)",
+        "summary": "Highest modeled conductivity at 5.112 mol% and 393.0 °C (σ ≈ 0.0224423373 S/cm), derived from the literature-conditioned surrogate.",
+        "run_id": "RUN-20260426004029752327",
+        "source_studies": [
+          "10.31857/s0023476123020170",
+          "10.1149/199740.1105pv",
+          "10.20944/preprints201812.0047.v1",
+          "10.1134/s1063774523020177"
+        ],
+        "n_measurements": 42
+      }
+    }
+  },
+  "artifacts": {
+    "scientific_intent": {
+      "domain": "materials_discovery",
+      "objective": "Optimize ionic conductivity of Fe-doped LLZO solid electrolytes across temperature while preserving phase stability.",
+      "entities": [
+        "composition",
+        "temperature",
+        "transport",
+        "stability"
+      ]
+    },
+    "literature": {
+      "source": "crossref",
+      "studies": [
+        {
+          "title": "IONIC CONDUCTIVITY AT ROOM TEMPERATURE AND THERMAL STABILITY OF CHLORINE-CONDUCTING SOLID ELECTROLYTES",
+          "authors": "N. I. Sorokin",
+          "year": 2023,
+          "doi": "10.31857/s0023476123020170",
+          "url": "https://doi.org/10.31857/s0023476123020170",
+          "source": "crossref",
+          "abstract": "Search for chlorine-conducting solid electrolytes with a high ionic conductivity σ293K at room temperature (293 K) is based on the analysis of temperature measurements of the electrical conductivity σ(T) of simple and complex compounds, solid solutions, composites, and glasses. A comparison of the thermal stability of chlorides is based on the analysis of the dependences σ(T) in cyclic heating–cooling measurements and the physicochemical data. Maximum σ293 K values were found for the solid solutions (3 × 10−5 S/cm) and (1 × 10−4 S/cm). Promising directions of search for chlorine-ion solid electrolytes for chemical current sources and chlorine sensors operating at room temperature are the method of crystallochemical heterovalent substitutions and implementation of the vacancy mechanism of electrical conductivity in crystal structures of the cotunnite (PbCl2) and fluorite (CaF2) types. The parameters of the ionic conductivity of cotunnite and fluorite crystals of chlorides and fluorides are analyzed.",
+          "exists": true,
+          "relevance": 0.86,
+          "title_similarity": 0.462,
+          "methodology": "Search for chlorine-conducting solid electrolytes with a high ionic conductivity σ293K at room temperature (293 K) is based on the analysis of temperature measurements of the electrical conductivity σ(T) of simple and...",
+          "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+          "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+          "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+          "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+          "evidence_level": "abstract",
+          "similarity": 0.641
+        },
+        {
+          "title": "Phase Stability and Ionic Conductivity of\n                                                Doped-CeO/YSZ Electrolytes",
+          "authors": "N.M. Sammes",
+          "year": 1997,
+          "doi": "10.1149/199740.1105pv",
+          "url": "https://doi.org/10.1149/199740.1105pv",
+          "source": "crossref",
+          "abstract": "",
+          "exists": true,
+          "relevance": 0.769,
+          "title_similarity": 0.462,
+          "methodology": "Radware Bot Manager Captcha We apologize for the inconvenience... To ensure we keep this website safe, please can you confirm you are a human by ticking the box below. If you are unable to complete the above request p...",
+          "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+          "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+          "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+          "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+          "evidence_level": "fulltext",
+          "similarity": 0.6
+        },
+        {
+          "title": "Effect of Y/Mg Ion Ratio and Phase Assemble on Ionic Conductivity of Multi-Doped Zirconia Ceramic Solid Electrolytes",
+          "authors": "Y.G. Hoo, Yusheng Shi, Wenzhong Lu",
+          "year": 2018,
+          "doi": "10.20944/preprints201812.0047.v1",
+          "url": "https://doi.org/10.20944/preprints201812.0047.v1",
+          "source": "crossref",
+          "abstract": "The phase composition design principle is introduced to obtain balanced properties of ionic conductivity and thermo-tolerant for zirconia solid electrolytes used in solid oxide fuel cells (SOFCs). The zirconia ceramic solid electrolytes are fabricated by two-step free sintering. With increasing Y/Mg ionic ratio from 1.78:1 to 1.88:1, the content of monoclinic phase fluctuates little (&amp;plusmn;3%). The ionic conductivity, including the total electrical resistance; grain electrical resistance and grain boundary electrical resistance at 1223K, are all gradually declining with the increasing of Y/Mg ionic ratio. Furthermore, the enrichment of Mg ion in grain boundary acts as a disincentive to grain boundary ionic conductivity. In addition, the maximum total equivalent conductivity at 1223K in this study reaches to 0.143 Scm-1 which can compare with that of certain YSZ. It will be beneficial to SOFCs application profited from increasing ionic conductivity of ceramic solid electrolytes.",
+          "exists": true,
+          "relevance": 0.671,
+          "title_similarity": 0.462,
+          "methodology": "The phase composition design principle is introduced to obtain balanced properties of ionic conductivity and thermo-tolerant for zirconia solid electrolytes used in solid oxide fuel cells (SOFCs). The zirconia ceramic...",
+          "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+          "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+          "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+          "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+          "evidence_level": "abstract",
+          "similarity": 0.556
+        },
+        {
+          "title": "Ionic Conductivity at Room Temperature and Thermal Stability of Chlorine-Conducting Solid Electrolytes",
+          "authors": "N. I. Sorokin",
+          "year": 2023,
+          "doi": "10.1134/s1063774523020177",
+          "url": "https://doi.org/10.1134/s1063774523020177",
+          "source": "crossref",
+          "abstract": "",
+          "exists": true,
+          "relevance": 0.573,
+          "title_similarity": 0.462,
+          "methodology": "Ionic Conductivity at Room Temperature and Thermal Stability of Chlorine-Conducting Solid Electrolytes | Crystallography Reports | Springer Nature Link Skip to main content Advertisement Log in Menu Find a journal Pub...",
+          "findings": "Estimated finding: relevance and evidence extracted from retrieved study text.",
+          "limitations": "Estimated limitation: automated summary from retrieved text; manual verification recommended.",
+          "equipment_estimate": "Estimated equipment: domain-standard instrumentation based on study context.",
+          "funding_estimate": "Estimated funding: likely grant-supported academic research.",
+          "evidence_level": "fulltext",
+          "similarity": 0.512
+        }
+      ],
+      "reason": null,
+      "main_claim": "Literature suggests targeted doping can improve measured conductivity in candidate materials.",
+      "weakest_claim": "Performance gains remain stable under broader operating conditions.",
+      "next_target": "Validate stability-focused claims for top-ranked relevant compositions.",
+      "novelty_score_hint": 4.3,
+      "redundancy_score_hint": 6.7
+    },
+    "prior_work": {
+      "novelty_score": 4.3,
+      "redundancy_score": 6.7,
+      "known_runs": [
+        "10.31857/s0023476123020170 — IONIC CONDUCTIVITY AT ROOM TEMPERATURE AND THERMAL STABILITY OF CHLORINE",
+        "10.1149/199740.1105pv — Phase Stability and Ionic Conductivity of\n                              ",
+        "10.20944/preprints201812.0047.v1 — Effect of Y/Mg Ion Ratio and Phase Assemble on Ionic Conductivity of Mul",
+        "10.1134/s1063774523020177 — Ionic Conductivity at Room Temperature and Thermal Stability of Chlorine"
+      ],
+      "gap": "Corpus emphasizes IONIC CONDUCTIVITY AT ROOM TEMPERATURE AND THERMAL STABILITY OF CHLORINE-CONDUCTING SOLID …; intermediate operating points may still be under-sampled for your stated goal."
+    },
+    "negative_results": {
+      "negative_results": [
+        {
+          "condition": "upper exploration bound",
+          "failure_type": "hypothetical_stability_stress",
+          "recommendation": "Reserve capacity for boundary sweeps informed by simulation phase_proxy."
+        }
+      ]
+    },
+    "claim_graph": {
+      "main_claim": "Literature suggests targeted doping can improve measured conductivity in candidate materials.",
+      "weakest_claim": "Performance gains remain stable under broader operating conditions.",
+      "next_target": "Validate stability-focused claims for top-ranked relevant compositions.",
+      "context": {
+        "novelty_score": 4.3,
+        "redundancy_score": 6.7,
+        "source_dois": [
+          "10.31857/s0023476123020170",
+          "10.1149/199740.1105pv",
+          "10.20944/preprints201812.0047.v1",
+          "10.1134/s1063774523020177"
+        ]
+      }
+    },
+    "experiment_ir": {
+      "experiment_type": "literature_conditioned_composition_temperature_screen",
+      "variables": {
+        "fraction_mol_pct": [
+          0.524,
+          2.053,
+          3.583,
+          5.112,
+          6.641,
+          8.171,
+          9.7
+        ],
+        "temperature_c": [
+          298.0,
+          313.0,
+          333.0,
+          353.0,
+          373.0,
+          393.0
+        ]
+      },
+      "design_matrix": [
+        {
+          "fraction_mol_pct": 0.524,
+          "temperature_c": 298.0
+        },
+        {
+          "fraction_mol_pct": 0.524,
+          "temperature_c": 313.0
+        },
+        {
+          "fraction_mol_pct": 0.524,
+          "temperature_c": 333.0
+        },
+        {
+          "fraction_mol_pct": 0.524,
+          "temperature_c": 353.0
+        },
+        {
+          "fraction_mol_pct": 0.524,
+          "temperature_c": 373.0
+        },
+        {
+          "fraction_mol_pct": 0.524,
+          "temperature_c": 393.0
+        },
+        {
+          "fraction_mol_pct": 2.053,
+          "temperature_c": 298.0
+        },
+        {
+          "fraction_mol_pct": 2.053,
+          "temperature_c": 313.0
+        },
+        {
+          "fraction_mol_pct": 2.053,
+          "temperature_c": 333.0
+        },
+        {
+          "fraction_mol_pct": 2.053,
+          "temperature_c": 353.0
+        },
+        {
+          "fraction_mol_pct": 2.053,
+          "temperature_c": 373.0
+        },
+        {
+          "fraction_mol_pct": 2.053,
+          "temperature_c": 393.0
+        },
+        {
+          "fraction_mol_pct": 3.583,
+          "temperature_c": 298.0
+        },
+        {
+          "fraction_mol_pct": 3.583,
+          "temperature_c": 313.0
+        },
+        {
+          "fraction_mol_pct": 3.583,
+          "temperature_c": 333.0
+        },
+        {
+          "fraction_mol_pct": 3.583,
+          "temperature_c": 353.0
+        },
+        {
+          "fraction_mol_pct": 3.583,
+          "temperature_c": 373.0
+        },
+        {
+          "fraction_mol_pct": 3.583,
+          "temperature_c": 393.0
+        },
+        {
+          "fraction_mol_pct": 5.112,
+          "temperature_c": 298.0
+        },
+        {
+          "fraction_mol_pct": 5.112,
+          "temperature_c": 313.0
+        },
+        {
+          "fraction_mol_pct": 5.112,
+          "temperature_c": 333.0
+        },
+        {
+          "fraction_mol_pct": 5.112,
+          "temperature_c": 353.0
+        },
+        {
+          "fraction_mol_pct": 5.112,
+          "temperature_c": 373.0
+        },
+        {
+          "fraction_mol_pct": 5.112,
+          "temperature_c": 393.0
+        },
+        {
+          "fraction_mol_pct": 6.641,
+          "temperature_c": 298.0
+        },
+        {
+          "fraction_mol_pct": 6.641,
+          "temperature_c": 313.0
+        },
+        {
+          "fraction_mol_pct": 6.641,
+          "temperature_c": 333.0
+        },
+        {
+          "fraction_mol_pct": 6.641,
+          "temperature_c": 353.0
+        },
+        {
+          "fraction_mol_pct": 6.641,
+          "temperature_c": 373.0
+        },
+        {
+          "fraction_mol_pct": 6.641,
+          "temperature_c": 393.0
+        },
+        {
+          "fraction_mol_pct": 8.171,
+          "temperature_c": 298.0
+        },
+        {
+          "fraction_mol_pct": 8.171,
+          "temperature_c": 313.0
+        },
+        {
+          "fraction_mol_pct": 8.171,
+          "temperature_c": 333.0
+        },
+        {
+          "fraction_mol_pct": 8.171,
+          "temperature_c": 353.0
+        },
+        {
+          "fraction_mol_pct": 8.171,
+          "temperature_c": 373.0
+        },
+        {
+          "fraction_mol_pct": 8.171,
+          "temperature_c": 393.0
+        },
+        {
+          "fraction_mol_pct": 9.7,
+          "temperature_c": 298.0
+        },
+        {
+          "fraction_mol_pct": 9.7,
+          "temperature_c": 313.0
+        },
+        {
+          "fraction_mol_pct": 9.7,
+          "temperature_c": 333.0
+        },
+        {
+          "fraction_mol_pct": 9.7,
+          "temperature_c": 353.0
+        },
+        {
+          "fraction_mol_pct": 9.7,
+          "temperature_c": 373.0
+        },
+        {
+          "fraction_mol_pct": 9.7,
+          "temperature_c": 393.0
+        }
+      ],
+      "target_claim": "Performance gains remain stable under broader operating conditions.",
+      "simulation": {
+        "version": 1,
+        "seed": 1151401944,
+        "noise_scale_relative": 0.06,
+        "n_replicates": 1,
+        "literature_signal_strength": 0.7183,
+        "n_source_studies": 4,
+        "study_refs": [
+          {
+            "doi": "10.31857/s0023476123020170",
+            "title": "IONIC CONDUCTIVITY AT ROOM TEMPERATURE AND THERMAL STABILITY OF CHLORINE-CONDUCTING SOLID ELECTROLYTES",
+            "relevance": 0.86
+          },
+          {
+            "doi": "10.1149/199740.1105pv",
+            "title": "Phase Stability and Ionic Conductivity of\n                                                Doped-CeO/YSZ Electrolytes",
+            "relevance": 0.769
+          },
+          {
+            "doi": "10.20944/preprints201812.0047.v1",
+            "title": "Effect of Y/Mg Ion Ratio and Phase Assemble on Ionic Conductivity of Multi-Doped Zirconia Ceramic Solid Electrolytes",
+            "relevance": 0.671
+          },
+          {
+            "doi": "10.1134/s1063774523020177",
+            "title": "Ionic Conductivity at Room Temperature and Thermal Stability of Chlorine-Conducting Solid Electrolytes",
+            "relevance": 0.573
+          }
+        ],
+        "extensions": {
+          "description": "Increase HELIX_SIM_N_REPLICATES for Monte Carlo; set HELIX_SIM_NOISE for relative log-normal noise.",
+          "reserved": [
+            "external_backend",
+            "surrogate_model_id",
+            "calibration_run_id"
+          ]
+        }
+      },
+      "literature_fingerprint": {
+        "mean_relevance": 0.71825,
+        "n_studies": 4,
+        "top_tokens": [
+          "thermal",
+          "stability",
+          "solid",
+          "temperature",
+          "ionic",
+          "electrolytes",
+          "conductivity",
+          "phase",
+          "doped",
+          "multi",
+          "assemble"
+        ]
+      }
+    },
+    "feasibility_report": {
+      "validation_status": "passed_with_warnings",
+      "issues": [
+        "High-temperature cells overlap with literature stability concerns."
+      ]
+    },
+    "value_score": {
+      "redundancy_score": 6.7,
+      "novelty_score": 4.3,
+      "expected_information_gain": 0.8411,
+      "overall_experiment_value": 0.8196,
+      "sigma_spread_coefficient_of_variation": 0.234247
+    },
+    "protocol": {
+      "protocol_id": "P-RUN-20260426004029752327",
+      "steps": [
+        "prepare_powders",
+        "ball_mill",
+        "sinter_schedule",
+        "impedance_sweep",
+        "structure_check",
+        "export_measurement_bundle"
+      ],
+      "design_space": {
+        "n_points": 42,
+        "axes": [
+          "fraction_mol_pct",
+          "temperature_c"
+        ]
+      }
+    },
+    "schedule": {
+      "schedule_id": "SCH-RUN-20260426004029752327",
+      "total_duration_hours": 13.7,
+      "resource_utilization_pct": 75,
+      "idle_time_hours": 5.8,
+      "design_points": 42,
+      "hours_per_design_point": 0.243
+    },
+    "execution_log": {
+      "status": "completed_with_recovery",
+      "current_step": 42,
+      "total_steps": 42,
+      "simulation_config": {
+        "version": 1,
+        "seed": 1151401944,
+        "noise_scale_relative": 0.06,
+        "n_replicates": 1,
+        "literature_signal_strength": 0.7183,
+        "n_source_studies": 4,
+        "study_refs": [
+          {
+            "doi": "10.31857/s0023476123020170",
+            "title": "IONIC CONDUCTIVITY AT ROOM TEMPERATURE AND THERMAL STABILITY OF CHLORINE-CONDUCTING SOLID ELECTROLYTES",
+            "relevance": 0.86
+          },
+          {
+            "doi": "10.1149/199740.1105pv",
+            "title": "Phase Stability and Ionic Conductivity of\n                                                Doped-CeO/YSZ Electrolytes",
+            "relevance": 0.769
+          },
+          {
+            "doi": "10.20944/preprints201812.0047.v1",
+            "title": "Effect of Y/Mg Ion Ratio and Phase Assemble on Ionic Conductivity of Multi-Doped Zirconia Ceramic Solid Electrolytes",
+            "relevance": 0.671
+          },
+          {
+            "doi": "10.1134/s1063774523020177",
+            "title": "Ionic Conductivity at Room Temperature and Thermal Stability of Chlorine-Conducting Solid Electrolytes",
+            "relevance": 0.573
+          }
+        ],
+        "extensions": {
+          "description": "Increase HELIX_SIM_N_REPLICATES for Monte Carlo; set HELIX_SIM_NOISE for relative log-normal noise.",
+          "reserved": [
+            "external_backend",
+            "surrogate_model_id",
+            "calibration_run_id"
+          ]
+        }
+      },
+      "measurements": [
+        {
+          "design_index": 0,
+          "fraction_mol_pct": 0.524,
+          "temperature_c": 298.0,
+          "sigma_S_cm_mean": 0.0124554818,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7342,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 1,
+          "fraction_mol_pct": 0.524,
+          "temperature_c": 313.0,
+          "sigma_S_cm_mean": 0.0116305507,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7474,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 2,
+          "fraction_mol_pct": 0.524,
+          "temperature_c": 333.0,
+          "sigma_S_cm_mean": 0.0131996572,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7521,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 3,
+          "fraction_mol_pct": 0.524,
+          "temperature_c": 353.0,
+          "sigma_S_cm_mean": 0.0142121616,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.761,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 4,
+          "fraction_mol_pct": 0.524,
+          "temperature_c": 373.0,
+          "sigma_S_cm_mean": 0.0123989391,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7613,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 5,
+          "fraction_mol_pct": 0.524,
+          "temperature_c": 393.0,
+          "sigma_S_cm_mean": 0.0147259227,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7473,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 6,
+          "fraction_mol_pct": 2.053,
+          "temperature_c": 298.0,
+          "sigma_S_cm_mean": 0.0171857279,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7987,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 7,
+          "fraction_mol_pct": 2.053,
+          "temperature_c": 313.0,
+          "sigma_S_cm_mean": 0.0162108971,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8059,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 8,
+          "fraction_mol_pct": 2.053,
+          "temperature_c": 333.0,
+          "sigma_S_cm_mean": 0.0158292909,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8163,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 9,
+          "fraction_mol_pct": 2.053,
+          "temperature_c": 353.0,
+          "sigma_S_cm_mean": 0.0175259543,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7969,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 10,
+          "fraction_mol_pct": 2.053,
+          "temperature_c": 373.0,
+          "sigma_S_cm_mean": 0.0168067231,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8004,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 11,
+          "fraction_mol_pct": 2.053,
+          "temperature_c": 393.0,
+          "sigma_S_cm_mean": 0.0172764326,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8312,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 12,
+          "fraction_mol_pct": 3.583,
+          "temperature_c": 298.0,
+          "sigma_S_cm_mean": 0.0211117922,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.87,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 13,
+          "fraction_mol_pct": 3.583,
+          "temperature_c": 313.0,
+          "sigma_S_cm_mean": 0.0205724976,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8837,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 14,
+          "fraction_mol_pct": 3.583,
+          "temperature_c": 333.0,
+          "sigma_S_cm_mean": 0.0190951814,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8793,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 15,
+          "fraction_mol_pct": 3.583,
+          "temperature_c": 353.0,
+          "sigma_S_cm_mean": 0.0206148669,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8692,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 16,
+          "fraction_mol_pct": 3.583,
+          "temperature_c": 373.0,
+          "sigma_S_cm_mean": 0.0194010123,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8596,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 17,
+          "fraction_mol_pct": 3.583,
+          "temperature_c": 393.0,
+          "sigma_S_cm_mean": 0.0208418231,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8927,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 18,
+          "fraction_mol_pct": 5.112,
+          "temperature_c": 298.0,
+          "sigma_S_cm_mean": 0.0195504269,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.9053,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 19,
+          "fraction_mol_pct": 5.112,
+          "temperature_c": 313.0,
+          "sigma_S_cm_mean": 0.0210374712,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.9054,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 20,
+          "fraction_mol_pct": 5.112,
+          "temperature_c": 333.0,
+          "sigma_S_cm_mean": 0.0213894758,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.9005,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 21,
+          "fraction_mol_pct": 5.112,
+          "temperature_c": 353.0,
+          "sigma_S_cm_mean": 0.0200116797,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8792,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 22,
+          "fraction_mol_pct": 5.112,
+          "temperature_c": 373.0,
+          "sigma_S_cm_mean": 0.0189530479,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.9086,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 23,
+          "fraction_mol_pct": 5.112,
+          "temperature_c": 393.0,
+          "sigma_S_cm_mean": 0.0224423373,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8953,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 24,
+          "fraction_mol_pct": 6.641,
+          "temperature_c": 298.0,
+          "sigma_S_cm_mean": 0.0184743997,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8459,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 25,
+          "fraction_mol_pct": 6.641,
+          "temperature_c": 313.0,
+          "sigma_S_cm_mean": 0.0199570015,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8178,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 26,
+          "fraction_mol_pct": 6.641,
+          "temperature_c": 333.0,
+          "sigma_S_cm_mean": 0.0198585934,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8296,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 27,
+          "fraction_mol_pct": 6.641,
+          "temperature_c": 353.0,
+          "sigma_S_cm_mean": 0.0203582498,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8413,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 28,
+          "fraction_mol_pct": 6.641,
+          "temperature_c": 373.0,
+          "sigma_S_cm_mean": 0.0184104195,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.8416,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 29,
+          "fraction_mol_pct": 6.641,
+          "temperature_c": 393.0,
+          "sigma_S_cm_mean": 0.0165509458,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.83,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 30,
+          "fraction_mol_pct": 8.171,
+          "temperature_c": 298.0,
+          "sigma_S_cm_mean": 0.0148535359,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.747,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 31,
+          "fraction_mol_pct": 8.171,
+          "temperature_c": 313.0,
+          "sigma_S_cm_mean": 0.0148240846,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7584,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 32,
+          "fraction_mol_pct": 8.171,
+          "temperature_c": 333.0,
+          "sigma_S_cm_mean": 0.0144566343,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7512,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 33,
+          "fraction_mol_pct": 8.171,
+          "temperature_c": 353.0,
+          "sigma_S_cm_mean": 0.0166340311,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7555,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 34,
+          "fraction_mol_pct": 8.171,
+          "temperature_c": 373.0,
+          "sigma_S_cm_mean": 0.0148419341,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7478,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 35,
+          "fraction_mol_pct": 8.171,
+          "temperature_c": 393.0,
+          "sigma_S_cm_mean": 0.0147860958,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7499,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 36,
+          "fraction_mol_pct": 9.7,
+          "temperature_c": 298.0,
+          "sigma_S_cm_mean": 0.0096385401,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7022,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 37,
+          "fraction_mol_pct": 9.7,
+          "temperature_c": 313.0,
+          "sigma_S_cm_mean": 0.0105634053,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.6788,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 38,
+          "fraction_mol_pct": 9.7,
+          "temperature_c": 333.0,
+          "sigma_S_cm_mean": 0.010005181,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.6826,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 39,
+          "fraction_mol_pct": 9.7,
+          "temperature_c": 353.0,
+          "sigma_S_cm_mean": 0.0093832102,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.694,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 40,
+          "fraction_mol_pct": 9.7,
+          "temperature_c": 373.0,
+          "sigma_S_cm_mean": 0.010255947,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7036,
+          "n_replicates": 1
+        },
+        {
+          "design_index": 41,
+          "fraction_mol_pct": 9.7,
+          "temperature_c": 393.0,
+          "sigma_S_cm_mean": 0.0092056056,
+          "sigma_S_cm_std": 0.0,
+          "phase_proxy_mean": 0.7095,
+          "n_replicates": 1
+        }
+      ],
+      "series_for_charts": [
+        {
+          "label": "Mean σ (S/cm) vs temperature (averaged over composition grid)",
+          "temperature_c": [
+            298.0,
+            313.0,
+            333.0,
+            353.0,
+            373.0,
+            393.0
+          ],
+          "sigma_S_cm": [
+            0.0161814149,
+            0.0163994154,
+            0.016262002,
+            0.0169628791,
+            0.0158668604,
+            0.0165470233
+          ]
+        }
+      ],
+      "recovery_hint": "Low phase_proxy on some cells; surrogate suggests rework or narrowed composition window.",
+      "literature_fingerprint": {
+        "mean_relevance": 0.71825,
+        "n_studies": 4
+      }
+    },
+    "failure_recovery_plan": {
+      "selected_recovery": "narrow_composition_window",
+      "status": "applied",
+      "affected_design_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "notes": "Surrogate phase_proxy dipped below threshold on edge compositions."
+    },
+    "validation_report": {
+      "validation_status": "repaired",
+      "mapped_columns": {
+        "fraction_mol_pct": "composition_fraction",
+        "temperature_c": "temperature",
+        "sigma_S_cm_mean": "conductivity",
+        "phase_proxy_mean": "phase_quality_proxy"
+      },
+      "validated_records": 42
+    },
+    "interpretation": {
+      "best_condition": {
+        "fraction_mol_pct": 5.112,
+        "temperature_c": 393.0,
+        "sigma_S_cm_mean": 0.0224423373
+      },
+      "stability_risk_condition": {
+        "fraction_mol_pct": 9.7,
+        "temperature_c": 313.0,
+        "phase_proxy_mean": 0.6788
+      },
+      "inference": "Highest modeled conductivity at 5.112 mol% and 393.0 °C (σ ≈ 0.0224423373 S/cm), derived from the literature-conditioned surrogate.",
+      "uncertainty": "Surrogate is not a physical model; uncertainty is epistemic (limited to retrieved abstracts and noise policy)."
+    },
+    "next_experiment_recommendation": {
+      "recommendation": "Refine composition near 5.11 mol% (suggested window 4.28–5.94 mol%) with extra temperature points around 393.0 °C.",
+      "expected_information_gain": 0.801,
+      "risk_level": 0.27,
+      "anchor_study_dois": [
+        "10.31857/s0023476123020170",
+        "10.1149/199740.1105pv",
+        "10.20944/preprints201812.0047.v1"
+      ]
+    },
+    "memory_update": {
+      "memory_updated": true,
+      "updated_records": [
+        "RUN-20260426004029752327"
+      ]
+    },
+    "report": {
+      "title": "HelixLabs experiment report (literature-conditioned simulation)",
+      "summary": "Highest modeled conductivity at 5.112 mol% and 393.0 °C (σ ≈ 0.0224423373 S/cm), derived from the literature-conditioned surrogate.",
+      "run_id": "RUN-20260426004029752327",
+      "source_studies": [
+        "10.31857/s0023476123020170",
+        "10.1149/199740.1105pv",
+        "10.20944/preprints201812.0047.v1",
+        "10.1134/s1063774523020177"
+      ],
+      "n_measurements": 42
+    }
+  },
+  "provenance": [
+    {
+      "time": "2026-04-26T00:40:29.831724+00:00",
+      "event_type": "STATE",
+      "category": "Intake",
+      "message": "Goal parsed into structured intent"
+    },
+    {
+      "time": "2026-04-26T00:40:36.038607+00:00",
+      "event_type": "MODEL",
+      "category": "Intake",
+      "message": "Literature retrieved from Crossref with deterministic scoring"
+    },
+    {
+      "time": "2026-04-26T00:40:36.039901+00:00",
+      "event_type": "MODEL",
+      "category": "Intake",
+      "message": "Novelty and prior-work overlap scored"
+    },
+    {
+      "time": "2026-04-26T00:40:36.040302+00:00",
+      "event_type": "STATE",
+      "category": "Intake",
+      "message": "Negative-results memory checked"
+    },
+    {
+      "time": "2026-04-26T00:40:36.040557+00:00",
+      "event_type": "DECISION",
+      "category": "Intake",
+      "message": "Weakest claim selected for planning focus"
+    },
+    {
+      "time": "2026-04-26T00:41:11.666772+00:00",
+      "event_type": "STATE",
+      "category": "Planning",
+      "message": "Experiment IR compiled from literature-conditioned design grid"
+    },
+    {
+      "time": "2026-04-26T00:41:12.452074+00:00",
+      "event_type": "STATE",
+      "category": "Planning",
+      "message": "Feasibility validated against literature + design grid"
+    },
+    {
+      "time": "2026-04-26T00:41:13.628896+00:00",
+      "event_type": "STATE",
+      "category": "Planning",
+      "message": "Experiment value scored from simulated design spread"
+    },
+    {
+      "time": "2026-04-26T00:41:14.365443+00:00",
+      "event_type": "STATE",
+      "category": "Planning",
+      "message": "Protocol generated for literature-conditioned grid"
+    },
+    {
+      "time": "2026-04-26T00:41:17.539093+00:00",
+      "event_type": "STATE",
+      "category": "Planning",
+      "message": "Resource schedule generated from simulated workload"
+    },
+    {
+      "time": "2026-04-26T00:41:19.994819+00:00",
+      "event_type": "DECISION",
+      "category": "Approval",
+      "message": "Approval=True by ui_user. Notes: "
+    },
+    {
+      "time": "2026-04-26T00:41:36.505845+00:00",
+      "event_type": "STATE",
+      "category": "Runtime",
+      "message": "Surrogate measurement campaign executed"
+    },
+    {
+      "time": "2026-04-26T00:41:36.506184+00:00",
+      "event_type": "ERROR",
+      "category": "Runtime",
+      "message": "Surrogate flagged stability stress on edge compositions"
+    },
+    {
+      "time": "2026-04-26T00:41:37.500079+00:00",
+      "event_type": "FIX",
+      "category": "Runtime",
+      "message": "Recovery policy applied from surrogate flags"
+    },
+    {
+      "time": "2026-04-26T00:41:39.394897+00:00",
+      "event_type": "FIX",
+      "category": "Runtime",
+      "message": "Measurement bundle validated"
+    },
+    {
+      "time": "2026-04-26T00:41:40.381586+00:00",
+      "event_type": "STATE",
+      "category": "Runtime",
+      "message": "Results interpreted from simulated measurements"
+    },
+    {
+      "time": "2026-04-26T00:41:41.286010+00:00",
+      "event_type": "DECISION",
+      "category": "Outcomes",
+      "message": "Next experiment recommendation generated from surrogate extrema"
+    },
+    {
+      "time": "2026-04-26T00:41:44.086931+00:00",
+      "event_type": "STATE",
+      "category": "Outcomes",
+      "message": "Experiment memory updated"
+    },
+    {
+      "time": "2026-04-26T00:41:44.086960+00:00",
+      "event_type": "STATE",
+      "category": "Outcomes",
+      "message": "Run report finalized with simulation + literature trace"
+    }
+  ],
+  "created_at": "2026-04-26T00:40:29.769602+00:00",
+  "updated_at": "2026-04-26T00:41:44.086967+00:00"
+}

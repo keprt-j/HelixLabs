@@ -1,18 +1,23 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { ArrowRight, Beaker, Network, Cpu, Search } from "lucide-react";
+import { ArrowRight, Beaker, Cpu, Loader2, Network, Search } from "lucide-react";
 import { HelixAnimation } from "./HelixAnimation";
 
 interface HomepageProps {
-  onStartReview: (experiment: string) => void;
+  onStartReview: (experiment: string) => void | Promise<void>;
 }
 
 export function Homepage({ onStartReview }: HomepageProps) {
   const [experiment, setExperiment] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const handleSubmit = () => {
-    if (experiment.trim()) {
-      onStartReview(experiment);
+  const handleSubmit = async () => {
+    if (!experiment.trim() || busy) return;
+    setBusy(true);
+    try {
+      await onStartReview(experiment);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -54,19 +59,19 @@ export function Homepage({ onStartReview }: HomepageProps) {
                   type="text"
                   value={experiment}
                   onChange={(e) => setExperiment(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSubmit()}
+                  onKeyDown={(e) => e.key === "Enter" && !busy && void handleSubmit()}
                   placeholder="e.g., Investigate Fe-doped LLZO ionic conductivity at varying temperatures"
                   className="flex-1 px-4 py-4 bg-yellow-50/50 border border-amber-200 rounded-lg text-stone-900 placeholder-stone-400 focus:outline-none focus:border-green-600 focus:ring-2 focus:ring-green-500/20 transition-all"
                 />
                 <motion.button
-                  onClick={handleSubmit}
-                  disabled={!experiment.trim()}
+                  onClick={() => void handleSubmit()}
+                  disabled={!experiment.trim() || busy}
                   className="px-8 py-4 bg-green-700 hover:bg-green-800 disabled:bg-amber-200 disabled:cursor-not-allowed text-white rounded-lg flex items-center gap-3 transition-all shadow-lg"
-                  whileHover={{ scale: experiment.trim() ? 1.02 : 1 }}
-                  whileTap={{ scale: experiment.trim() ? 0.98 : 1 }}
+                  whileHover={{ scale: experiment.trim() && !busy ? 1.02 : 1 }}
+                  whileTap={{ scale: experiment.trim() && !busy ? 0.98 : 1 }}
                 >
-                  <Search className="w-5 h-5" />
-                  <span className="font-medium">Review Literature</span>
+                  {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+                  <span className="font-medium">{busy ? "Starting…" : "Review Literature"}</span>
                 </motion.button>
               </div>
             </div>

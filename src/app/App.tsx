@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { advanceRun, approveRun, createRun, fetchReportRun, fetchRun } from "./api/runApi";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { Homepage } from "./components/Homepage";
@@ -14,20 +15,147 @@ import { DataValidationPanel } from "./components/panels/DataValidationPanel";
 import { ResultsPanel } from "./components/panels/ResultsPanel";
 import { NextExperimentPanel } from "./components/panels/NextExperimentPanel";
 import { ProvenanceLogPanel } from "./components/panels/ProvenanceLogPanel";
+import { mapRunStateToHeaderStatus } from "./lib/runUi";
+import type { HelixRun } from "./types/run";
+
+const RUN_SESSION_KEY = "helixlabs_active_run_id";
+
+function readStoredRunId(): string | null {
+  try {
+    const v = sessionStorage.getItem(RUN_SESSION_KEY);
+    return v?.trim() ? v.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistRunId(id: string | null) {
+  try {
+    if (id) sessionStorage.setItem(RUN_SESSION_KEY, id);
+    else sessionStorage.removeItem(RUN_SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function asRecord(v: unknown): Record<string, unknown> | null {
+  if (v && typeof v === "object" && !Array.isArray(v)) return v as Record<string, unknown>;
+  return null;
+}
 
 type AppStage = "homepage" | "literature-review" | "dashboard";
+type DashboardSection = "intake" | "planning" | "runtime" | "outcomes";
+type IntakeTab = "goal" | "prior-work" | "claim-graph";
+type PlanningTab = "compiler" | "schedule";
+type RuntimeTab = "execution" | "recovery" | "validation" | "results";
+type OutcomesTab = "next" | "provenance";
+type SectionTabMap = {
+  intake: IntakeTab;
+  planning: PlanningTab;
+  runtime: RuntimeTab;
+  outcomes: OutcomesTab;
+};
 
 export default function App() {
   const [stage, setStage] = useState<AppStage>("homepage");
   const [experiment, setExperiment] = useState("");
-  const [currentSection, setCurrentSection] = useState("goal");
+  const [runId, setRunId] = useState<string | null>(() => readStoredRunId());
+  const [run, setRun] = useState<HelixRun | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
+
+  const [currentSection, setCurrentSection] = useState<DashboardSection>("intake");
+  const [sectionTabs, setSectionTabs] = useState<SectionTabMap>({
+    intake: "goal",
+    planning: "compiler",
+    runtime: "execution",
+    outcomes: "next",
+  });
+
+  const refreshRun = useCallback(async () => {
+    if (!runId) return;
+    setRunError(null);
+    try {
+      const r = await fetchRun(runId);
+      setRun(r);
+    } catch (e) {
+      setRun(null);
+      setRunError(e instanceof Error ? e.message : "Failed to load run");
+    }
+  }, [runId]);
+
+  useEffect(() => {
+    if (stage === "dashboard" && runId) {
+      void refreshRun();
+    }
+  }, [stage, runId, refreshRun]);
+
+  const handleAdvance = useCallback(async () => {
+    if (!runId) return;
+    setActionBusy(true);
+    setRunError(null);
+    try {
+      const r = await advanceRun(runId);
+      setRun(r);
+    } catch (e) {
+      setRunError(e instanceof Error ? e.message : "Advance failed");
+    } finally {
+      setActionBusy(false);
+    }
+  }, [runId]);
+
+  const handleApprove = useCallback(async () => {
+    if (!runId) return;
+    setActionBusy(true);
+    setRunError(null);
+    try {
+      const r = await approveRun(runId);
+      setRun(r);
+    } catch (e) {
+      setRunError(e instanceof Error ? e.message : "Approve failed");
+    } finally {
+      setActionBusy(false);
+    }
+  }, [runId]);
+
+  const handleExportReport = useCallback(async () => {
+    if (!runId) return;
+    setActionBusy(true);
+    setRunError(null);
+    try {
+      let reportBody: unknown = run?.artifacts?.report;
+      if (reportBody == null) {
+        const r = await fetchReportRun(runId);
+        reportBody = r.artifacts?.report ?? r;
+        setRun(r);
+      }
+      const text = JSON.stringify(reportBody, null, 2);
+      const blob = new Blob([text], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `helixlabs-report-${runId}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setRunError(e instanceof Error ? e.message : "Export failed");
+    } finally {
+      setActionBusy(false);
+    }
+  }, [runId, run]);
 
   if (stage === "homepage") {
     return (
       <div className="size-full">
         <Homepage
-          onStartReview={(exp) => {
+          onStartReview={async (exp) => {
+            setRunError(null);
+            const { run_id } = await createRun(exp);
+            setRunId(run_id);
+            persistRunId(run_id);
             setExperiment(exp);
+            const r = await fetchRun(run_id);
+            setRun(r);
             setStage("literature-review");
           }}
         />
@@ -40,85 +168,174 @@ export default function App() {
       <div className="size-full">
         <LiteratureReview
           experiment={experiment}
-          onProceedToDashboard={() => setStage("dashboard")}
+          runId={runId}
+          onProceedToDashboard={() => {
+            void refreshRun();
+            setStage("dashboard");
+          }}
         />
       </div>
     );
   }
 
+  const artifacts = run?.artifacts ?? {};
+  const scientificIntent = asRecord(artifacts.scientific_intent);
+  const priorWork = asRecord(artifacts.prior_work);
+  const negativeResults = asRecord(artifacts.negative_results);
+  const claimGraph = asRecord(artifacts.claim_graph);
+  const experimentIr = asRecord(artifacts.experiment_ir);
+  const feasibilityReport = asRecord(artifacts.feasibility_report);
+  const valueScore = asRecord(artifacts.value_score);
+  const protocol = asRecord(artifacts.protocol);
+  const schedule = asRecord(artifacts.schedule);
+  const executionLog = asRecord(artifacts.execution_log);
+  const chartSeriesRaw = executionLog?.series_for_charts;
+  const chartSeries =
+    Array.isArray(chartSeriesRaw) && chartSeriesRaw.length > 0 && typeof chartSeriesRaw[0] === "object"
+      ? asRecord(chartSeriesRaw[0] as object)
+      : null;
+  const failureRecovery = asRecord(artifacts.failure_recovery_plan);
+  const validationReport = asRecord(artifacts.validation_report);
+  const interpretation = asRecord(artifacts.interpretation);
+  const nextRec = asRecord(artifacts.next_experiment_recommendation);
+
+  const headerStatus = run ? mapRunStateToHeaderStatus(run.state) : "Draft";
+  const showApprove = run?.state === "AWAITING_HUMAN_APPROVAL";
+  const canExport =
+    Boolean(run?.artifacts?.report) || run?.state === "MEMORY_UPDATED" || run?.state === "REPORT_GENERATED";
+  const terminalStates = new Set(["MEMORY_UPDATED", "REPORT_GENERATED"]);
+  const canAdvance =
+    Boolean(runId) &&
+    run &&
+    !terminalStates.has(run.state) &&
+    run.state !== "AWAITING_HUMAN_APPROVAL";
+
+  const sectionSubtabs: Record<DashboardSection, Array<{ id: string; label: string }>> = {
+    intake: [
+      { id: "goal", label: "Research Goal" },
+      { id: "prior-work", label: "Prior Work & Novelty" },
+      { id: "claim-graph", label: "Claim Graph" },
+    ],
+    planning: [
+      { id: "compiler", label: "Experiment Compiler" },
+      { id: "schedule", label: "Schedule" },
+    ],
+    runtime: [
+      { id: "execution", label: "Execution" },
+      { id: "recovery", label: "Failure & Recovery" },
+      { id: "validation", label: "Data Validation" },
+      { id: "results", label: "Results" },
+    ],
+    outcomes: [
+      { id: "next", label: "Next Experiment" },
+      { id: "provenance", label: "Provenance Log" },
+    ],
+  };
+
   const renderPanel = () => {
     switch (currentSection) {
-      case "goal":
-        return (
-          <div>
-            <h2 className="text-xl text-stone-900 mb-6">Research Goal</h2>
-            <ResearchGoalPanel />
-            <div className="mt-6">
-              <h2 className="text-xl text-stone-900 mb-6">Prior Work & Novelty</h2>
-              <PriorWorkPanel />
-            </div>
-          </div>
-        );
-      case "claim-graph":
-        return (
-          <div>
-            <h2 className="text-xl text-stone-900 mb-6">Claim Graph</h2>
-            <ClaimGraphPanel />
-          </div>
-        );
-      case "compiler":
-        return (
-          <div>
-            <h2 className="text-xl text-stone-900 mb-6">Experiment Compiler</h2>
-            <CompilerPanel />
-          </div>
-        );
-      case "schedule":
-        return (
-          <div>
-            <h2 className="text-xl text-stone-900 mb-6">Schedule</h2>
-            <SchedulePanel />
-          </div>
-        );
-      case "execution":
-        return (
-          <div>
-            <h2 className="text-xl text-stone-900 mb-6">Execution</h2>
-            <ExecutionPanel />
-            <div className="mt-6">
-              <h2 className="text-xl text-stone-900 mb-6">Failure & Recovery</h2>
-              <FailureRecoveryPanel />
-            </div>
-          </div>
-        );
-      case "validation":
-        return (
-          <div>
-            <h2 className="text-xl text-stone-900 mb-6">Data Validation</h2>
-            <DataValidationPanel />
-          </div>
-        );
-      case "results":
-        return (
-          <div>
-            <h2 className="text-xl text-stone-900 mb-6">Results</h2>
-            <ResultsPanel />
-          </div>
-        );
-      case "next":
-        return (
-          <div>
-            <h2 className="text-xl text-stone-900 mb-6">Next Experiment</h2>
-            <NextExperimentPanel />
-          </div>
-        );
-      case "provenance":
-        return (
-          <div>
-            <h2 className="text-xl text-stone-900 mb-6">Provenance Log</h2>
-            <ProvenanceLogPanel />
-          </div>
-        );
+      case "intake":
+        switch (sectionTabs.intake) {
+          case "goal":
+            return (
+              <div>
+                <h2 className="text-xl text-stone-900 mb-6">Research Goal</h2>
+                <ResearchGoalPanel userGoal={run?.user_goal ?? experiment} intent={scientificIntent} />
+              </div>
+            );
+          case "prior-work":
+            return (
+              <div>
+                <h2 className="text-xl text-stone-900 mb-6">Prior Work & Novelty</h2>
+                <PriorWorkPanel priorWork={priorWork} negativeResults={negativeResults} />
+              </div>
+            );
+          case "claim-graph":
+            return (
+              <div>
+                <h2 className="text-xl text-stone-900 mb-6">Claim Graph</h2>
+                <ClaimGraphPanel claimGraph={claimGraph} />
+              </div>
+            );
+          default:
+            return null;
+        }
+      case "planning":
+        switch (sectionTabs.planning) {
+          case "compiler":
+            return (
+              <div>
+                <h2 className="text-xl text-stone-900 mb-6">Experiment Compiler</h2>
+                <CompilerPanel
+                  experimentIr={experimentIr}
+                  feasibilityReport={feasibilityReport}
+                  valueScore={valueScore}
+                  protocol={protocol}
+                />
+              </div>
+            );
+          case "schedule":
+            return (
+              <div>
+                <h2 className="text-xl text-stone-900 mb-6">Schedule</h2>
+                <SchedulePanel schedule={schedule} protocol={protocol} />
+              </div>
+            );
+          default:
+            return null;
+        }
+      case "runtime":
+        switch (sectionTabs.runtime) {
+          case "execution":
+            return (
+              <div>
+                <h2 className="text-xl text-stone-900 mb-6">Execution</h2>
+                <ExecutionPanel artifact={executionLog} />
+              </div>
+            );
+          case "recovery":
+            return (
+              <div>
+                <h2 className="text-xl text-stone-900 mb-6">Failure & Recovery</h2>
+                <FailureRecoveryPanel artifact={failureRecovery} />
+              </div>
+            );
+          case "validation":
+            return (
+              <div>
+                <h2 className="text-xl text-stone-900 mb-6">Data Validation</h2>
+                <DataValidationPanel artifact={validationReport} />
+              </div>
+            );
+          case "results":
+            return (
+              <div>
+                <h2 className="text-xl text-stone-900 mb-6">Results</h2>
+                <ResultsPanel artifact={interpretation} chartSeries={chartSeries} />
+              </div>
+            );
+          default:
+            return null;
+        }
+      case "outcomes":
+        switch (sectionTabs.outcomes) {
+          case "next":
+            return (
+              <div>
+                <h2 className="text-xl text-stone-900 mb-6">Next Experiment</h2>
+                <NextExperimentPanel recommendation={nextRec} />
+              </div>
+            );
+          case "provenance":
+            return (
+              <div>
+                <h2 className="text-xl text-stone-900 mb-6">Provenance Log</h2>
+                <ProvenanceLogPanel events={run?.provenance} />
+              </div>
+            );
+          default:
+            return null;
+        }
       default:
         return null;
     }
@@ -127,16 +344,27 @@ export default function App() {
   return (
     <div className="size-full flex flex-col bg-yellow-50">
       <Header
-        runId="RUN-4729"
-        experimentName={experiment || "Fe-doped LLZO ionic conductivity study"}
-        status="Running"
+        runId={runId ?? "—"}
+        experimentName={run?.user_goal || experiment || "Active run"}
+        workflowState={run?.state}
+        status={headerStatus}
         onHomeClick={() => setStage("homepage")}
+        onAdvance={canAdvance ? handleAdvance : undefined}
+        onApprove={runId ? handleApprove : undefined}
+        onExportReport={runId && canExport ? handleExportReport : undefined}
+        showApprove={showApprove}
+        actionBusy={actionBusy}
       />
 
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
           currentSection={currentSection}
           onSectionChange={setCurrentSection}
+          sectionSubtabs={sectionSubtabs}
+          currentSubtab={sectionTabs}
+          onSubtabChange={(section, tabId) => {
+            setSectionTabs((prev) => ({ ...prev, [section]: tabId } as SectionTabMap));
+          }}
         />
 
         <main className="flex-1 overflow-y-auto p-8 bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 relative">
@@ -145,6 +373,12 @@ export default function App() {
           <div className="absolute bottom-20 left-20 w-96 h-96 bg-emerald-200/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="max-w-7xl mx-auto relative z-10">
+            {runError && (
+              <div className="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">{runError}</div>
+            )}
+            {!run && runId && (
+              <div className="mb-4 text-sm text-stone-600">Loading run {runId}…</div>
+            )}
             {renderPanel()}
           </div>
         </main>
