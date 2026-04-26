@@ -31,7 +31,6 @@ import { ProcedureProgressPanel } from "./components/panels/ProcedureProgressPan
 import { SimulationControlsPanel } from "./components/panels/SimulationControlsPanel";
 import { PipelineJsonInspector } from "./components/panels/PipelineJsonInspector";
 import { mapRunStateToHeaderStatus } from "./lib/runUi";
-import { buildDemoReport } from "./lib/demoReport";
 import type { HelixRun } from "./types/run";
 
 const RUN_SESSION_KEY = "helixlabs_active_run_id";
@@ -311,18 +310,6 @@ export default function App() {
       setActionBusy(false);
     }
   }, [runId, run]);
-
-  const handleExportDemo = useCallback(() => {
-    if (!run) return;
-    const text = buildDemoReport(run);
-    const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `helixlabs-demo-${run.run_id}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [run]);
 
   const handleApplySimulationControls = useCallback(
     async (overrides: { n_replicates?: number; noise_scale_relative?: number; design_density?: "coarse" | "medium" | "fine" }) => {
@@ -731,7 +718,6 @@ export default function App() {
         onAdvance={canAdvance ? handleAdvance : undefined}
         onApprove={runId ? handleApprove : undefined}
         onExportSelection={runId && canExport ? handleExportSelection : undefined}
-        onExportDemo={run ? handleExportDemo : undefined}
         onDemoWalkthrough={canAdvance || showApprove ? handleDemoWalkthrough : undefined}
         showApprove={showApprove}
         actionBusy={actionBusy}

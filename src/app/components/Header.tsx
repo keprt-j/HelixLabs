@@ -11,7 +11,6 @@ interface HeaderProps {
   onAdvance?: () => void;
   onApprove?: () => void;
   onExportSelection?: (subject: "hypothesis" | "experiment" | "results", format: "json" | "pdf") => void;
-  onExportDemo?: () => void;
   onDemoWalkthrough?: () => void;
   showApprove?: boolean;
   actionBusy?: boolean;
@@ -26,7 +25,6 @@ export function Header({
   onAdvance,
   onApprove,
   onExportSelection,
-  onExportDemo,
   onDemoWalkthrough,
   showApprove,
   actionBusy,
@@ -123,11 +121,12 @@ export function Header({
             type="button"
             disabled={actionBusy}
             onClick={onAdvance}
-            title="Advance"
-            aria-label="Advance"
-            className="w-9 h-9 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white rounded flex items-center justify-center transition-colors"
+            title="Next Step"
+            aria-label="Next Step"
+            className="h-9 px-3 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white rounded flex items-center justify-center gap-1.5 transition-colors"
           >
             <Play className="w-4 h-4" />
+            <span className="text-xs font-medium">Next Step</span>
           </button>
         )}
         {onDemoWalkthrough && (
@@ -135,11 +134,12 @@ export function Header({
             type="button"
             disabled={actionBusy}
             onClick={onDemoWalkthrough}
-            title="Demo Walkthrough"
-            aria-label="Demo Walkthrough"
-            className="w-9 h-9 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white rounded flex items-center justify-center transition-colors"
+            title="Walkthrough"
+            aria-label="Walkthrough"
+            className="h-9 px-3 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white rounded flex items-center justify-center gap-1.5 transition-colors"
           >
             <Play className="w-4 h-4" />
+            <span className="text-xs font-medium">Walkthrough</span>
           </button>
         )}
 
@@ -207,18 +207,6 @@ export function Header({
               </div>
             )}
           </div>
-        )}
-        {onExportDemo && (
-          <button
-            type="button"
-            disabled={actionBusy}
-            onClick={onExportDemo}
-            title="Export Demo"
-            aria-label="Export Demo"
-            className="w-9 h-9 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white rounded flex items-center justify-center transition-colors"
-          >
-            <Download className="w-4 h-4" />
-          </button>
         )}
       </div>
     </header>
