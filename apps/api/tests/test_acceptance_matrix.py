@@ -5,16 +5,51 @@ import unittest
 from pathlib import Path
 
 from helixlabs.repos.json_run_repository import JsonRunRepository
+from helixlabs.services.evidence_store import EvidenceStore
+from helixlabs.services.literature_retriever import LiteratureRetrieverService
+from helixlabs.services.literature_synthesizer import LiteratureSynthesizerService
 from helixlabs.services.orchestrator import RunOrchestrator
 from helixlabs.services.stage_service import StageService
+
+
+class StaticRetriever(LiteratureRetrieverService):
+    def retrieve(self, query: str, limit: int = 200, time_budget_s: float = 4.0):  # type: ignore[override]
+        base = [
+            {
+                "title": "Static study one",
+                "authors": "A. Tester",
+                "year": 2024,
+                "doi": "10.0000/acc-static-1",
+                "url": "https://example.org/acc-static-1",
+                "source": "static",
+                "abstract": "Objective factors correlate with response under bounded constraints in controlled tests.",
+                "exists": True,
+            },
+            {
+                "title": "Static study two",
+                "authors": "B. Tester",
+                "year": 2023,
+                "doi": "10.0000/acc-static-2",
+                "url": "https://example.org/acc-static-2",
+                "source": "static",
+                "abstract": "Response variation depends on interventions and operating windows across practical settings.",
+                "exists": True,
+            },
+        ]
+        return base[: max(1, min(limit, len(base)))]
 
 
 class AcceptanceMatrixTests(unittest.TestCase):
     def _orchestrator(self) -> RunOrchestrator:
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
-        repo = JsonRunRepository(runtime_dir=Path(tmp.name))
-        return RunOrchestrator(repo=repo, stage_service=StageService())
+        runtime = Path(tmp.name)
+        repo = JsonRunRepository(runtime_dir=runtime)
+        stage = StageService(
+            synthesizer=LiteratureSynthesizerService(retriever=StaticRetriever()),
+            evidence_store=EvidenceStore(store_dir=runtime / "evidence"),
+        )
+        return RunOrchestrator(repo=repo, stage_service=stage)
 
     def _run(self, goal: str, run_id: str):
         orch = self._orchestrator()

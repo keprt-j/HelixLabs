@@ -128,3 +128,17 @@ export async function replanRun(runId: string): Promise<HelixRun> {
   const data = await parseJson<{ run: HelixRun }>(res);
   return data.run;
 }
+
+export async function selectHypothesis(runId: string, hypothesisId: string): Promise<HelixRun> {
+  const base = getApiBase();
+  const res = await fetch(`${base}/api/runs/${encodeURIComponent(runId)}/select-hypothesis`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ hypothesis_id: hypothesisId }),
+  });
+  if (!res.ok) {
+    throw new Error(`Unable to select hypothesis (${res.status})`);
+  }
+  const data = await parseJson<{ run: HelixRun }>(res);
+  return data.run;
+}

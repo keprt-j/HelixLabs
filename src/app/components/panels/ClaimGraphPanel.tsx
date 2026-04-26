@@ -2,12 +2,21 @@ import { ArrowDown } from "lucide-react";
 
 interface ClaimGraphPanelProps {
   claimGraph?: Record<string, unknown> | null;
+  onSelectHypothesis?: (hypothesisId: string) => void | Promise<void>;
+  busy?: boolean;
 }
 
-export function ClaimGraphPanel({ claimGraph }: ClaimGraphPanelProps) {
+export function ClaimGraphPanel({ claimGraph, onSelectHypothesis, busy }: ClaimGraphPanelProps) {
   const main = typeof claimGraph?.main_claim === "string" ? claimGraph.main_claim : "";
   const weakest = typeof claimGraph?.weakest_claim === "string" ? claimGraph.weakest_claim : "";
   const nextTarget = typeof claimGraph?.next_target === "string" ? claimGraph.next_target : "";
+  const selectedId = typeof claimGraph?.selected_hypothesis_id === "string" ? claimGraph.selected_hypothesis_id : null;
+  const selectedReason =
+    typeof claimGraph?.selected_hypothesis_reason === "string" ? claimGraph.selected_hypothesis_reason : null;
+  const hypothesesRaw = Array.isArray(claimGraph?.hypotheses) ? claimGraph?.hypotheses : [];
+  const hypotheses = hypothesesRaw
+    .map((h) => (h && typeof h === "object" ? (h as Record<string, unknown>) : null))
+    .filter((h): h is Record<string, unknown> => h !== null);
   const ctx = claimGraph?.context && typeof claimGraph.context === "object" ? (claimGraph.context as Record<string, unknown>) : null;
 
   if (!claimGraph || Object.keys(claimGraph).length === 0) {
@@ -56,6 +65,49 @@ export function ClaimGraphPanel({ claimGraph }: ClaimGraphPanelProps) {
         <div className="mt-6 p-4 bg-yellow-100/50 border border-yellow-700 rounded">
           <div className="text-xs text-yellow-800 mb-1 font-mono">NEXT TARGET</div>
           <div className="text-stone-900 text-sm">{nextTarget || "—"}</div>
+        </div>
+
+        <div className="mt-6 space-y-3">
+          <div className="text-xs text-stone-600 font-mono">HYPOTHESIS SHORTLIST (3)</div>
+          {hypotheses.length > 0 ? (
+            hypotheses.map((h) => {
+              const id = typeof h.id === "string" ? h.id : "H?";
+              const title = typeof h.title === "string" ? h.title : "Hypothesis";
+              const statement = typeof h.statement === "string" ? h.statement : "—";
+              const score = typeof h.score === "number" ? h.score : null;
+              const active = selectedId != null && id === selectedId;
+              return (
+                <div
+                  key={id}
+                  className={`rounded-lg border p-3 ${active ? "border-green-700 bg-green-100/40" : "border-amber-200 bg-white/70"}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-sm text-stone-900">
+                      <span className="font-mono mr-2">{id}</span>
+                      {title}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {score != null && <span className="text-xs font-mono text-stone-600">score={score.toFixed(2)}</span>}
+                      {active && <span className="text-xs px-2 py-0.5 rounded bg-green-700 text-green-100">Selected</span>}
+                      {!active && onSelectHypothesis && (
+                        <button
+                          onClick={() => onSelectHypothesis(id)}
+                          disabled={Boolean(busy)}
+                          className="text-xs px-2 py-0.5 rounded bg-stone-800 text-stone-100 hover:bg-stone-700 disabled:opacity-50"
+                        >
+                          {busy ? "Selecting..." : "Select"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-sm text-stone-800 mt-1">{statement}</div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="text-sm text-stone-600">No shortlist available.</div>
+          )}
+          {selectedReason && <div className="text-xs text-stone-600">{selectedReason}</div>}
         </div>
       </div>
     </div>

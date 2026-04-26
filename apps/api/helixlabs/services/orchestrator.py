@@ -50,6 +50,48 @@ class RunOrchestrator:
     def list_runs(self, limit: int = 100) -> list[RunRecord]:
         return self._repo.list_runs(limit=limit)
 
+    def retrieve_evidence(self, run_id: str, query: str, top_k: int = 5) -> list[dict]:
+        run = self._repo.get(run_id)
+        if run is None:
+            return []
+        return self._stage_service.retrieve_evidence(run_id=run_id, query=query, top_k=top_k)
+
+    def select_hypothesis(self, run_id: str, hypothesis_id: str) -> RunRecord | None:
+        run = self._repo.get(run_id)
+        if run is None:
+            return None
+        cg = run.pipeline.intake.claim_graph or {}
+        hypotheses = cg.get("hypotheses")
+        if not isinstance(hypotheses, list):
+            raise ValueError("No hypothesis shortlist available")
+        selected = None
+        for h in hypotheses:
+            if not isinstance(h, dict):
+                continue
+            if str(h.get("id", "")).strip() == hypothesis_id.strip():
+                selected = h
+                break
+        if selected is None:
+            raise ValueError(f"Hypothesis '{hypothesis_id}' not found")
+        cg["selected_hypothesis_id"] = str(selected.get("id"))
+        cg["selected_hypothesis_statement"] = str(selected.get("statement", ""))
+        cg["selected_hypothesis_reason"] = (
+            f"User selected {selected.get('id')} ({selected.get('title', 'hypothesis')}) for planning focus."
+        )
+        run.pipeline.intake.claim_graph = cg
+        run.artifacts["claim_graph"] = cg
+        run.provenance.append(
+            ProvenanceEvent(
+                time=RunRecord.now_iso(),
+                event_type="DECISION",
+                category="Intake",
+                message=f"User selected hypothesis {selected.get('id')} for experiment planning.",
+            )
+        )
+        run.updated_at = RunRecord.now_iso()
+        self._repo.save(run)
+        return run
+
     def set_simulation_overrides(self, run_id: str, overrides: dict[str, str | int | float]) -> RunRecord | None:
         run = self._repo.get(run_id)
         if run is None:

@@ -11,6 +11,7 @@ from helixlabs.domain.models import (
     RuntimePayload,
 )
 from helixlabs.services.literature_synthesizer import LiteratureSynthesizerService
+from helixlabs.services.evidence_store import EvidenceStore
 from helixlabs.services.plugin_router import PluginRouter
 from helixlabs.services.plugins.base import ExperimentPlugin
 from helixlabs.services.ir_validator import ExperimentIRValidator
@@ -20,10 +21,12 @@ class StageService:
     def __init__(
         self,
         synthesizer: LiteratureSynthesizerService | None = None,
+        evidence_store: EvidenceStore | None = None,
         ir_validator: ExperimentIRValidator | None = None,
         plugin_router: PluginRouter | None = None,
     ) -> None:
         self._synthesizer = synthesizer or LiteratureSynthesizerService()
+        self._evidence_store = evidence_store or EvidenceStore()
         self._ir_validator = ir_validator or ExperimentIRValidator()
         self._plugin_router = plugin_router or PluginRouter()
 
@@ -161,16 +164,31 @@ class StageService:
 
     def stage_search_literature(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
         synthesis = self._synthesizer.synthesize(run.user_goal)
+        studies = list(synthesis.get("studies") or [])
+        evidence_manifest = self._evidence_store.ingest(run_id=run.run_id, studies=studies, user_goal=run.user_goal)
+        claims = {
+            "main_claim": str(synthesis.get("main_claim") or ""),
+            "weakest_claim": str(synthesis.get("weakest_claim") or ""),
+            "next_target": str(synthesis.get("next_target") or ""),
+        }
+        claim_evidence = self._evidence_store.claim_citations(run_id=run.run_id, claims=claims, top_k=2)
+        safe_studies = [{k: v for k, v in s.items() if not str(k).startswith("_")} for s in studies]
         payload = {
             "source": synthesis.get("source", "fallback"),
-            "studies": synthesis.get("studies", []),
+            "studies": safe_studies,
             "reason": synthesis.get("reason"),
             "axis_hints": synthesis.get("axis_hints", {}),
             "main_claim": synthesis.get("main_claim"),
             "weakest_claim": synthesis.get("weakest_claim"),
             "next_target": synthesis.get("next_target"),
+            "hypothesis_qa": synthesis.get("hypothesis_qa", {}),
             "novelty_score_hint": synthesis.get("novelty_score"),
             "redundancy_score_hint": synthesis.get("redundancy_score"),
+            "evidence_manifest": {
+                "doc_count": evidence_manifest.get("doc_count", 0),
+                "chunk_count": evidence_manifest.get("chunk_count", 0),
+            },
+            "claim_evidence": claim_evidence,
         }
         source = str(payload["source"])
         if source == "crossref+openai":
@@ -179,7 +197,15 @@ class StageService:
             msg = "Literature retrieved from Crossref with deterministic scoring"
         else:
             msg = "Literature synthesized via fallback dataset"
-        return payload, [self._event("MODEL", "Intake", msg)]
+        return payload, [
+            self._event("MODEL", "Intake", msg),
+            self._event(
+                "MODEL",
+                "Intake",
+                f"Evidence index refreshed with {payload['evidence_manifest']['doc_count']} docs and "
+                f"{payload['evidence_manifest']['chunk_count']} chunks",
+            ),
+        ]
 
     def stage_match_prior_work(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
         studies = run.pipeline.intake.literature.get("studies", [])
@@ -265,17 +291,54 @@ class StageService:
         next_target = str(
             lit.get("next_target") or "Stress boundary conditions implied by the weakest evidence in the bundle."
         )
+        qa = lit.get("hypothesis_qa") if isinstance(lit.get("hypothesis_qa"), dict) else {}
+        main_rel = float(((qa.get("main_claim") or {}).get("relevance_score", 0.78)) if isinstance(qa.get("main_claim"), dict) else 0.78)
+        weak_rel = float(((qa.get("weakest_claim") or {}).get("relevance_score", 0.72)) if isinstance(qa.get("weakest_claim"), dict) else 0.72)
+        next_rel = float(((qa.get("next_target") or {}).get("relevance_score", 0.75)) if isinstance(qa.get("next_target"), dict) else 0.75)
+        hypotheses = [
+            {
+                "id": "H1",
+                "title": "Primary effect hypothesis",
+                "statement": main_claim,
+                "kind": "effect",
+                "score": round(max(0.0, min(1.0, main_rel)), 3),
+            },
+            {
+                "id": "H2",
+                "title": "Boundary risk hypothesis",
+                "statement": weakest_claim,
+                "kind": "risk",
+                "score": round(max(0.0, min(1.0, weak_rel - 0.06)), 3),
+            },
+            {
+                "id": "H3",
+                "title": "Next-step intervention hypothesis",
+                "statement": next_target,
+                "kind": "intervention",
+                "score": round(max(0.0, min(1.0, next_rel)), 3),
+            },
+        ]
+        selected = max(hypotheses, key=lambda h: float(h.get("score", 0.0)))
         payload = {
             "main_claim": main_claim,
             "weakest_claim": weakest_claim,
             "next_target": next_target,
+            "hypotheses": hypotheses,
+            "selected_hypothesis_id": selected["id"],
+            "selected_hypothesis_statement": selected["statement"],
+            "selected_hypothesis_reason": (
+                f"Selected {selected['id']} ({selected['title']}) based on strongest relevance/evidence score."
+            ),
             "context": {
                 "novelty_score": prior.get("novelty_score", 7.2),
                 "redundancy_score": prior.get("redundancy_score", 3.1),
                 "source_dois": [str(s.get("doi", "")) for s in list(lit.get("studies") or []) if s.get("doi")][:5],
+                "claim_evidence": lit.get("claim_evidence", {}),
             },
         }
-        return payload, [self._event("DECISION", "Intake", "Weakest claim selected for planning focus")]
+        return payload, [
+            self._event("DECISION", "Intake", "Generated three hypothesis candidates and selected one for planning focus")
+        ]
 
     def stage_compile_ir(self, run: RunRecord) -> tuple[dict, list[ProvenanceEvent]]:
         plugin = self._plugin_for_run(run)
@@ -288,7 +351,8 @@ class StageService:
             "experiment_type": f"plugin:{selected.plugin.plugin_id}",
             "variables": list((validation.get("normalized_ir") or {}).get("factors") or []),
             "design_matrix": plugin_payload.get("design_matrix", []),
-            "target_claim": run.pipeline.intake.claim_graph.get("weakest_claim"),
+            "target_claim": run.pipeline.intake.claim_graph.get("selected_hypothesis_statement")
+            or run.pipeline.intake.claim_graph.get("weakest_claim"),
             "simulation": plugin_payload.get("simulation", {}),
             "experiment_ir": validation.get("normalized_ir") or plugin_payload.get("experiment_ir") or {},
             "ir_validation": {
@@ -372,6 +436,9 @@ class StageService:
         payload = self._plugin_for_run(run).report(run, ex, dict(interp))
         payload["n_measurements"] = payload.get("n_measurements", len(measurements))
         return payload, [self._event("STATE", "Outcomes", "Run report finalized with plugin execution trace")]
+
+    def retrieve_evidence(self, run_id: str, query: str, top_k: int = 5) -> list[dict]:
+        return self._evidence_store.retrieve(run_id=run_id, query=query, top_k=top_k)
 
     @staticmethod
     def _event(event_type: str, category: str, message: str) -> ProvenanceEvent:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import time
 from typing import Any
 
 import httpx
@@ -10,20 +11,36 @@ class LiteratureRetrieverService:
     CROSSREF_URL = "https://api.crossref.org/works"
     OPENALEX_URL = "https://api.openalex.org/works"
 
-    def retrieve(self, query: str, limit: int = 12) -> list[dict[str, Any]]:
-        rows = max(3, min(limit, 25))
-        try:
-            studies = self._retrieve_crossref(query=query, limit=rows)
-            if studies:
-                return studies
-        except Exception:
-            pass
-        return self._retrieve_openalex(query=query, limit=rows)
+    def retrieve(self, query: str, limit: int = 200, time_budget_s: float = 4.0) -> list[dict[str, Any]]:
+        rows = max(3, min(limit, 200))
+        deadline = time.monotonic() + max(1.0, float(time_budget_s))
+        merged: list[dict[str, Any]] = []
+        seen: set[str] = set()
 
-    def _retrieve_crossref(self, query: str, limit: int) -> list[dict[str, Any]]:
+        # Try both providers within the same time budget and return everything found.
+        for provider in ("crossref", "openalex"):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0.2:
+                break
+            try:
+                if provider == "crossref":
+                    studies = self._retrieve_crossref(query=query, limit=rows, timeout_s=min(remaining, 6.0))
+                else:
+                    studies = self._retrieve_openalex(query=query, limit=rows, timeout_s=min(remaining, 6.0))
+            except Exception:
+                continue
+            for study in studies:
+                key = self._dedupe_key(study)
+                if key in seen:
+                    continue
+                seen.add(key)
+                merged.append(study)
+        return merged[:rows]
+
+    def _retrieve_crossref(self, query: str, limit: int, timeout_s: float = 12.0) -> list[dict[str, Any]]:
         params = {"query.bibliographic": query, "rows": limit}
         headers = {"User-Agent": "HelixLabs/0.2 (https://helixlabs.local; mailto:dev@helixlabs.local)"}
-        with httpx.Client(timeout=12.0, follow_redirects=True) as client:
+        with httpx.Client(timeout=max(0.5, timeout_s), follow_redirects=True) as client:
             response = client.get(self.CROSSREF_URL, params=params, headers=headers)
             response.raise_for_status()
             data = response.json()
@@ -31,9 +48,9 @@ class LiteratureRetrieverService:
         items = data.get("message", {}).get("items", [])
         return [s for s in (self._from_crossref_item(item) for item in items) if s]
 
-    def _retrieve_openalex(self, query: str, limit: int) -> list[dict[str, Any]]:
+    def _retrieve_openalex(self, query: str, limit: int, timeout_s: float = 12.0) -> list[dict[str, Any]]:
         params = {"search": query, "per-page": limit}
-        with httpx.Client(timeout=12.0, follow_redirects=True) as client:
+        with httpx.Client(timeout=max(0.5, timeout_s), follow_redirects=True) as client:
             response = client.get(self.OPENALEX_URL, params=params)
             response.raise_for_status()
             data = response.json()
@@ -138,3 +155,12 @@ class LiteratureRetrieverService:
         pairs.sort(key=lambda x: x[0])
         words = [token for _, token in pairs]
         return " ".join(words[:220])
+
+    @staticmethod
+    def _dedupe_key(study: dict[str, Any]) -> str:
+        doi = str(study.get("doi", "")).strip().lower()
+        if doi:
+            return f"doi:{doi}"
+        title = str(study.get("title", "")).strip().lower()
+        year = str(study.get("year", "")).strip()
+        return f"title:{title}|year:{year}"

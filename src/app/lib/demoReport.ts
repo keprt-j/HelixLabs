@@ -11,6 +11,10 @@ export function buildDemoReport(run: HelixRun): string {
   const normalized = asObj(artifacts.normalized_results) || {};
   const fidelity = typeof normalized.fidelity === "string" ? normalized.fidelity : "unknown";
   const origin = typeof normalized.origin === "string" ? normalized.origin : "unknown";
+  const scopeNote =
+    typeof (asObj(artifacts.report) || {}).scope_note === "string"
+      ? String((asObj(artifacts.report) || {}).scope_note)
+      : "Evidence-conditioned simulation for planning support; not a protocol-faithful replication.";
   const provenance = Array.isArray(run.provenance) ? run.provenance.slice(-5) : [];
 
   return [
@@ -21,6 +25,7 @@ export function buildDemoReport(run: HelixRun): string {
     `- State: ${run.state}`,
     `- Fidelity: ${fidelity}`,
     `- Origin: ${origin}`,
+    `- Scope: ${scopeNote}`,
     ``,
     `## Interpretation`,
     `${String(interp.inference ?? "No interpretation available.")}`,

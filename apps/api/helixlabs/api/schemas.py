@@ -23,6 +23,10 @@ class SimulationOverridesRequest(BaseModel):
     )
 
 
+class HypothesisSelectionRequest(BaseModel):
+    hypothesis_id: str = Field(min_length=2, description="Hypothesis id from claim_graph.hypotheses (e.g., H1)")
+
+
 class RunSummaryResponse(BaseModel):
     run_id: str
     state: RunState
@@ -64,3 +68,20 @@ class StageResponse(BaseModel):
     stage: str
     message: str
 
+
+class EvidenceChunk(BaseModel):
+    score: float
+    doc_id: str
+    chunk_id: str
+    title: str | None = None
+    doi: str | None = None
+    url: str | None = None
+    evidence_level: str | None = None
+    text: str
+
+
+class EvidenceResponse(BaseModel):
+    run_id: str
+    query: str
+    top_k: int
+    chunks: list[EvidenceChunk]

@@ -7,7 +7,9 @@ from fastapi import APIRouter, HTTPException
 from helixlabs.api.schemas import (
     AdvanceResponse,
     ApproveRequest,
+    EvidenceResponse,
     EventsResponse,
+    HypothesisSelectionRequest,
     RunCreateRequest,
     RunDetailResponse,
     RunListItem,
@@ -101,6 +103,17 @@ def replan(run_id: str) -> RunDetailResponse:
     return RunDetailResponse(run=run)
 
 
+@router.post("/runs/{run_id}/select-hypothesis", response_model=RunDetailResponse)
+def select_hypothesis(run_id: str, payload: HypothesisSelectionRequest) -> RunDetailResponse:
+    try:
+        run = orchestrator.select_hypothesis(run_id=run_id, hypothesis_id=payload.hypothesis_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return RunDetailResponse(run=run)
+
+
 @router.get("/runs/{run_id}/report", response_model=RunDetailResponse)
 def get_report(run_id: str) -> RunDetailResponse:
     run = orchestrator.get_run(run_id)
@@ -117,6 +130,16 @@ def get_run_events(run_id: str) -> EventsResponse:
     if run is None:
         raise HTTPException(status_code=404, detail="Run not found")
     return EventsResponse(run_id=run.run_id, events=run.provenance)
+
+
+@router.get("/runs/{run_id}/evidence", response_model=EvidenceResponse)
+def get_run_evidence(run_id: str, query: str, top_k: int = 5) -> EvidenceResponse:
+    run = orchestrator.get_run(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    k = max(1, min(20, top_k))
+    chunks = orchestrator.retrieve_evidence(run_id=run_id, query=query, top_k=k)
+    return EvidenceResponse(run_id=run_id, query=query, top_k=k, chunks=chunks)
 
 
 def _stage_handler(run_id: str, stage_name: str) -> StageResponse:

@@ -27,21 +27,66 @@ class ChemistryMaterialsPlugin(ExperimentPlugin):
 
     def can_handle(self, run: RunRecord) -> float:
         text = run.user_goal.lower()
-        keys = ["electrolyte", "conductivity", "dop", "phase", "materials", "battery", "chem"]
-        hits = sum(1 for k in keys if k in text)
+        strong_keys = [
+            "electrolyte",
+            "conductivity",
+            "cathode",
+            "anode",
+            "sinter",
+            "dwell",
+            "calcine",
+            "anneal",
+            "crack",
+            "phase",
+            "battery",
+            "materials",
+        ]
+        weak_keys = ["chem", "dop", "oxide", "ceramic"]
+        hits = sum(1 for k in strong_keys if k in text) + 0.5 * sum(1 for k in weak_keys if k in text)
         if hits == 0:
             return 0.08
-        if hits == 1:
+        if hits <= 1:
             return 0.28
-        return min(1.0, 0.18 + hits * 0.12)
+        return min(1.0, 0.2 + hits * 0.11)
 
     def compile_ir(self, run: RunRecord) -> dict[str, Any]:
         design, meta = design_experiment_matrix(run)
         fp = meta["fingerprint"]
         sim_cfg = build_simulation_config(run)
-        fracs = sorted({float(p["fraction_mol_pct"]) for p in design}) or [0.0, 1.0]
+        fracs = sorted({float(p["fraction_mol_pct"]) for p in design if "fraction_mol_pct" in p})
         temps = sorted({float(p["temperature_c"]) for p in design}) or [20.0, 40.0]
+        dwells = sorted({float(p["dwell_time_h"]) for p in design if "dwell_time_h" in p})
         source_refs = [str(s.get("doi")) for s in list(run.pipeline.intake.literature.get("studies") or []) if s.get("doi")]
+        factors: list[dict[str, Any]] = []
+        if dwells:
+            factors.append(
+                {
+                    "name": "dwell_time_h",
+                    "type": "continuous",
+                    "units": "h",
+                    "bounds": {"min": min(dwells), "max": max(dwells)},
+                    "levels": dwells,
+                }
+            )
+        if fracs:
+            factors.append(
+                {
+                    "name": "fraction_mol_pct",
+                    "type": "continuous",
+                    "units": "mol%",
+                    "bounds": {"min": min(fracs), "max": max(fracs)},
+                    "levels": fracs,
+                }
+            )
+        factors.append(
+            {
+                "name": "temperature_c",
+                "type": "continuous",
+                "units": "C",
+                "bounds": {"min": min(temps), "max": max(temps)},
+                "levels": temps,
+            }
+        )
         ir = ExperimentIR(
             version="1.0",
             domain_hint="chemistry_materials",
@@ -53,22 +98,7 @@ class ChemistryMaterialsPlugin(ExperimentPlugin):
                 "confidence": max(0.05, min(0.95, float(fp.get("mean_relevance", 0.5)))),
                 "source_refs": source_refs[:8],
             },
-            factors=[
-                {
-                    "name": "fraction_mol_pct",
-                    "type": "continuous",
-                    "units": "mol%",
-                    "bounds": {"min": min(fracs), "max": max(fracs)},
-                    "levels": fracs,
-                },
-                {
-                    "name": "temperature_c",
-                    "type": "continuous",
-                    "units": "C",
-                    "bounds": {"min": min(temps), "max": max(temps)},
-                    "levels": temps,
-                },
-            ],
+            factors=factors,
             responses=[
                 {"name": "conductivity", "objective": "maximize", "units": "S/cm"},
                 {"name": "phase_proxy", "objective": "maximize"},

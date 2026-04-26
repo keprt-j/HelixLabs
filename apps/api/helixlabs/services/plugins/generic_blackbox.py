@@ -47,6 +47,31 @@ def _slug(name: str, fallback: str) -> str:
     return "_".join(tokens[:3])
 
 
+def _x_bounds(run: RunRecord, hints: dict[str, str]) -> tuple[float, float] | None:
+    unit = str(hints.get("x_unit") or "").strip().lower()
+    label = str(hints.get("x_label") or "").strip().lower()
+    goal = run.user_goal.lower()
+    if unit == "c":
+        if any(k in goal for k in ("sinter", "calcine", "anneal", "firing")):
+            return 650.0, 950.0
+        return 20.0, 450.0
+    if unit == "h":
+        return 0.5, 24.0
+    if unit == "kpa":
+        return 50.0, 500.0
+    if unit == "v":
+        return 0.5, 5.0
+    if unit == "mol%":
+        return 0.1, 10.0
+    if "temperature" in label:
+        if any(k in goal for k in ("sinter", "calcine", "anneal", "firing")):
+            return 650.0, 950.0
+        return 20.0, 450.0
+    if "time" in label or "dwell" in label:
+        return 0.5, 24.0
+    return None
+
+
 class GenericBlackBoxPlugin(ExperimentPlugin):
     plugin_id = "generic_blackbox"
 
@@ -64,6 +89,11 @@ class GenericBlackBoxPlugin(ExperimentPlugin):
         x_unit = str(hints.get("x_unit") or "")
         y_unit = str(hints.get("y_unit") or "")
         y_key = _slug(y_label, "response_metric")
+        x_bounds = _x_bounds(run, hints)
+        if x_unit and x_bounds is None:
+            # Guardrail: do not expose a physical unit when the x-axis remains normalized.
+            x_label = "Normalized Input Variable"
+            x_unit = ""
         ir = ExperimentIR(
             version="1.0",
             domain_hint="generic",
@@ -78,7 +108,7 @@ class GenericBlackBoxPlugin(ExperimentPlugin):
                     "name": _slug(x_label, "x1"),
                     "type": "continuous",
                     "units": x_unit or None,
-                    "bounds": {"min": 0.0, "max": 1.0},
+                    "bounds": {"min": x_bounds[0], "max": x_bounds[1]} if x_bounds else {"min": 0.0, "max": 1.0},
                     "levels": [0.0, 0.25, 0.5, 0.75, 1.0],
                 },
                 {
@@ -114,6 +144,7 @@ class GenericBlackBoxPlugin(ExperimentPlugin):
                 "seed": _seed(run),
                 "fidelity": "low",
                 "note": "Generic fallback plugin used due to low domain match confidence.",
+                "x_bounds": {"min": x_bounds[0], "max": x_bounds[1]} if x_bounds else {"min": 0.0, "max": 1.0},
             },
             "literature_fingerprint": {
                 "mean_relevance": float((run.pipeline.intake.prior_work or {}).get("novelty_score", 5.0)) / 10.0,
@@ -187,9 +218,19 @@ class GenericBlackBoxPlugin(ExperimentPlugin):
         x_unit = str(hints.get("x_unit") or "")
         y_unit = str(hints.get("y_unit") or "")
         y_format = str(hints.get("y_format") or "float")
+        x_bounds = _x_bounds(run, hints)
+        if x_unit and x_bounds is None:
+            x_label = "Normalized Input Variable"
+            x_unit = ""
+        if x_bounds is not None:
+            lo, hi = x_bounds
+            span = max(1e-9, hi - lo)
+            x_values = [round(lo + m["x1"] * span, 4) for m in by_x1]
+        else:
+            x_values = [round(m["x1"], 4) for m in by_x1]
         series = {
             "label": f"{y_label} vs {x_label}",
-            "x": [round(m["x1"], 4) for m in by_x1],
+            "x": x_values,
             "y": [m["objective_score"] for m in by_x1],
             "x_label": x_label,
             "y_label": y_label,
@@ -254,6 +295,10 @@ class GenericBlackBoxPlugin(ExperimentPlugin):
         return {
             "title": "HelixLabs report (generic black-box fallback)",
             "summary": interpretation.get("inference", ""),
+            "scope_note": (
+                "Evidence-conditioned low-fidelity simulation for planning support; not a protocol-faithful "
+                "replication of any individual source study."
+            ),
             "run_id": run.run_id,
             "n_measurements": n,
             "plugin_fidelity": "low",

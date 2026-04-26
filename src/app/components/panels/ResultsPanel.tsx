@@ -27,6 +27,8 @@ type ChartModel = {
   yFormat: YFormat;
 };
 
+type AxisDomain = [number, number] | undefined;
+
 function toNumeric(v: unknown): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
@@ -155,6 +157,22 @@ function applyRegressionLine(
   });
 }
 
+function paddedDomain(values: number[], padFraction = 0.08): AxisDomain {
+  if (values.length === 0) return undefined;
+  let min = Math.min(...values);
+  let max = Math.max(...values);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return undefined;
+  if (min === max) {
+    const pad = Math.max(1e-6, Math.abs(min) * 0.1 || 0.1);
+    return [min - pad, max + pad];
+  }
+  const span = max - min;
+  const pad = Math.max(1e-6, span * padFraction);
+  min -= pad;
+  max += pad;
+  return [min, max];
+}
+
 export function ResultsPanel({ artifact, chartSeries, procedureTrace, observations, fidelity, origin }: ResultsPanelProps) {
   const [uploaded, setUploaded] = useState<XYRow[]>([]);
   const label = typeof chartSeries?.label === "string" ? chartSeries.label : "Simulated series";
@@ -185,6 +203,17 @@ export function ResultsPanel({ artifact, chartSeries, procedureTrace, observatio
     return [...map.values()];
   }, [plotRows, uploaded]);
 
+  const numericX = mergedRows
+    .map((r) => (typeof r.x === "number" && Number.isFinite(r.x) ? r.x : null))
+    .filter((v): v is number => v !== null);
+  const xDomain = paddedDomain(numericX, 0.03);
+  const xIsNumeric = numericX.length === mergedRows.length && mergedRows.length > 0;
+  const numericY = mergedRows
+    .flatMap((r) => [r.y, r.yFit, r.yUploaded])
+    .map((v) => Number(v))
+    .filter((v) => Number.isFinite(v));
+  const yDomain = paddedDomain(numericY, 0.1);
+
   return (
     <div className="space-y-6">
       {rows.length > 0 && (
@@ -203,11 +232,17 @@ export function ResultsPanel({ artifact, chartSeries, procedureTrace, observatio
                 <XAxis
                   dataKey="x"
                   name={xLabelDisplay}
+                  type={xIsNumeric ? "number" : "category"}
+                  domain={xIsNumeric ? xDomain : undefined}
+                  allowDataOverflow={xIsNumeric}
                   tick={{ fontSize: 11 }}
                   label={{ value: xLabelDisplay, position: "bottom", offset: 0, fontSize: 11 }}
                 />
                 <YAxis
                   dataKey="y"
+                  type="number"
+                  domain={yDomain}
+                  allowDataOverflow
                   tick={{ fontSize: 11 }}
                   tickFormatter={(v) => formatYValue(Number(v), yFormat)}
                   label={{ value: yLabelDisplay, angle: -90, position: "insideLeft", fontSize: 11 }}
@@ -239,6 +274,9 @@ export function ResultsPanel({ artifact, chartSeries, procedureTrace, observatio
           </div>
           <p className="text-xs text-stone-500 mt-2">
             Data-driven labels/units from series payload (`x_label`, `y_label`, `x_unit`, `y_unit`, `y_format`) with automatic fallback.
+          </p>
+          <p className="text-xs text-stone-500 mt-1">
+            This chart is an evidence-conditioned simulation for planning support, not a literal reproduction of any single paper protocol.
           </p>
 
           {regression && (

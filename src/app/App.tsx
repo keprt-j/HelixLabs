@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { advanceRun, approveRun, createRun, fetchReportRun, fetchRun, replanRun, setRunSimulationOverrides } from "./api/runApi";
+import {
+  advanceRun,
+  approveRun,
+  createRun,
+  fetchReportRun,
+  fetchRun,
+  replanRun,
+  selectHypothesis,
+  setRunSimulationOverrides,
+} from "./api/runApi";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { Homepage } from "./components/Homepage";
@@ -205,6 +214,34 @@ export default function App() {
     [runId],
   );
 
+  const handleSelectHypothesis = useCallback(
+    async (hypothesisId: string) => {
+      if (!runId || !run) return;
+      setActionBusy(true);
+      setRunError(null);
+      try {
+        let updated = await selectHypothesis(runId, hypothesisId);
+        const replanEligible = new Set([
+          "CLAIM_GRAPH_BUILT",
+          "EXPERIMENT_IR_COMPILED",
+          "FEASIBILITY_VALIDATED",
+          "NOVELTY_VALUE_SCORED",
+          "PROTOCOL_GENERATED",
+          "AWAITING_HUMAN_APPROVAL",
+        ]);
+        if (replanEligible.has(updated.state)) {
+          updated = await replanRun(runId);
+        }
+        setRun(updated);
+      } catch (e) {
+        setRunError(e instanceof Error ? e.message : "Failed to select hypothesis");
+      } finally {
+        setActionBusy(false);
+      }
+    },
+    [runId, run],
+  );
+
   if (stage === "homepage") {
     return (
       <div className="size-full">
@@ -331,7 +368,7 @@ export default function App() {
             return (
               <div>
                 <h2 className="text-xl text-stone-900 mb-6">Claim Graph</h2>
-                <ClaimGraphPanel claimGraph={claimGraph} />
+                <ClaimGraphPanel claimGraph={claimGraph} onSelectHypothesis={handleSelectHypothesis} busy={actionBusy} />
               </div>
             );
           default:

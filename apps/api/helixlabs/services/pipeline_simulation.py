@@ -188,6 +188,9 @@ def _fraction_grid(n_levels: int, fp: dict[str, Any], rng: random.Random) -> lis
 
 def _temperature_grid(user_goal: str, fp: dict[str, Any]) -> list[float]:
     g = user_goal.lower()
+    if any(k in g for k in ("sinter", "calcine", "anneal", "firing")):
+        # Typical solid-state processing window for cathode/electrolyte sintering.
+        return [650.0, 700.0, 750.0, 800.0, 850.0, 900.0]
     if "cryo" in g or "low temp" in g:
         return [200.0, 250.0, 298.0]
     if "high" in g and "temp" in g:
@@ -197,6 +200,20 @@ def _temperature_grid(user_goal: str, fp: dict[str, Any]) -> list[float]:
     if bump:
         base.append(393.0)
     return base
+
+
+def _dwell_time_grid(user_goal: str) -> list[float]:
+    g = user_goal.lower()
+    if "short dwell" in g:
+        return [0.5, 1.0, 2.0, 3.0]
+    if "long dwell" in g:
+        return [2.0, 4.0, 8.0, 12.0]
+    return [1.0, 2.0, 4.0, 6.0, 8.0]
+
+
+def _uses_dwell_factor(user_goal: str) -> bool:
+    g = user_goal.lower()
+    return any(k in g for k in ("dwell", "hold time", "soak time", "sinter"))
 
 
 def design_experiment_matrix(run: RunRecord) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -213,16 +230,29 @@ def design_experiment_matrix(run: RunRecord) -> tuple[list[dict[str, Any]], dict
     fracs = _fraction_grid(n_levels, fp, rng)
     temps = _temperature_grid(run.user_goal, fp)
     rows: list[dict[str, Any]] = []
+    if _uses_dwell_factor(run.user_goal):
+        dwells = _dwell_time_grid(run.user_goal)
+        for d in dwells:
+            for t in temps:
+                rows.append({"temperature_c": round(t, 2), "dwell_time_h": round(d, 2)})
+        meta = {
+            "fingerprint": fp,
+            "n_design_points": len(rows),
+            "factor_mode": "temperature_dwell",
+            "fraction_anchor_mol_pct": round(float(fracs[len(fracs) // 2]), 3) if fracs else 3.0,
+        }
+        return rows, meta
     for f in fracs:
         for t in temps:
             rows.append({"fraction_mol_pct": f, "temperature_c": round(t, 2)})
-    meta = {"fingerprint": fp, "n_design_points": len(rows)}
+    meta = {"fingerprint": fp, "n_design_points": len(rows), "factor_mode": "composition_temperature"}
     return rows, meta
 
 
 def _sigma(
     fraction_mol_pct: float,
     temperature_c: float,
+    dwell_time_h: float,
     fp: dict[str, Any],
     p: dict[str, float],
     rng: random.Random,
@@ -233,6 +263,8 @@ def _sigma(
         p["base_log_sigma"]
         - p["curvature"] * x * x
         + p["temp_coef"] * (temperature_c - 298.0) / 75.0
+        + 0.03 * math.log1p(max(0.0, dwell_time_h))
+        - 0.006 * max(0.0, dwell_time_h - 8.0)
         + fp["mean_relevance"] * 0.12
     )
     noise = rng.gauss(0.0, noise_scale)
@@ -248,27 +280,36 @@ def run_measurements(run: RunRecord, design: list[dict[str, Any]], fp: dict[str,
     noise = noise_scale_for_run(run)
     n_rep = n_replicates_for_run(run)
     p = _model_params(fp, rng)
+    dwell_mode = _uses_dwell_factor(run.user_goal)
+    anchor_fraction = 3.0
+    if design and "fraction_mol_pct" in design[0]:
+        vals = sorted({float(d.get("fraction_mol_pct", 3.0)) for d in design})
+        if vals:
+            anchor_fraction = vals[len(vals) // 2]
     rows: list[dict[str, Any]] = []
     for idx, point in enumerate(design):
-        frac = float(point["fraction_mol_pct"])
+        frac = float(point.get("fraction_mol_pct", anchor_fraction))
         temp_c = float(point["temperature_c"])
+        dwell_h = float(point.get("dwell_time_h", 4.0))
         sigmas: list[float] = []
         phases: list[float] = []
         for _ in range(n_rep):
-            s, ph = _sigma(frac, temp_c, fp, p, rng, noise)
+            s, ph = _sigma(frac, temp_c, dwell_h, fp, p, rng, noise)
             sigmas.append(s)
             phases.append(ph)
-        rows.append(
-            {
-                "design_index": idx,
-                "fraction_mol_pct": frac,
-                "temperature_c": temp_c,
-                "sigma_S_cm_mean": round(sum(sigmas) / len(sigmas), 10),
-                "sigma_S_cm_std": round(_pstdev(sigmas), 12) if len(sigmas) > 1 else 0.0,
-                "phase_proxy_mean": round(sum(phases) / len(phases), 4),
-                "n_replicates": n_rep,
-            }
-        )
+        row = {
+            "design_index": idx,
+            "temperature_c": temp_c,
+            "sigma_S_cm_mean": round(sum(sigmas) / len(sigmas), 10),
+            "sigma_S_cm_std": round(_pstdev(sigmas), 12) if len(sigmas) > 1 else 0.0,
+            "phase_proxy_mean": round(sum(phases) / len(phases), 4),
+            "n_replicates": n_rep,
+        }
+        if dwell_mode:
+            row["dwell_time_h"] = dwell_h
+        else:
+            row["fraction_mol_pct"] = frac
+        rows.append(row)
     return rows
 
 
@@ -281,7 +322,36 @@ def _pstdev(values: list[float]) -> float:
 
 
 def aggregate_series(measurements: list[dict[str, Any]]) -> dict[str, Any]:
-    """Series for plotting: sigma vs temperature (mean over fraction bands)."""
+    """Series for plotting built from a concrete measured slice to match visible observations."""
+    if not measurements:
+        return {"label": "No measurements", "temperature_c": [], "sigma_S_cm": []}
+
+    if any("dwell_time_h" in m for m in measurements):
+        dwell_vals = sorted({float(m.get("dwell_time_h", 0.0)) for m in measurements})
+        target_dwell = dwell_vals[len(dwell_vals) // 2]
+        filtered = [m for m in measurements if abs(float(m.get("dwell_time_h", 0.0)) - target_dwell) < 1e-9]
+        filtered.sort(key=lambda m: float(m["temperature_c"]))
+        return {
+            "label": f"Measured σ (S/cm) vs temperature at dwell={target_dwell:g} h",
+            "temperature_c": [round(float(m["temperature_c"]), 2) for m in filtered],
+            "sigma_S_cm": [round(float(m["sigma_S_cm_mean"]), 10) for m in filtered],
+            "slice_factor": "dwell_time_h",
+            "slice_value": target_dwell,
+        }
+
+    if any("fraction_mol_pct" in m for m in measurements):
+        frac_vals = sorted({float(m.get("fraction_mol_pct", 0.0)) for m in measurements})
+        target_frac = frac_vals[len(frac_vals) // 2]
+        filtered = [m for m in measurements if abs(float(m.get("fraction_mol_pct", 0.0)) - target_frac) < 1e-9]
+        filtered.sort(key=lambda m: float(m["temperature_c"]))
+        return {
+            "label": f"Measured σ (S/cm) vs temperature at composition={target_frac:g} mol%",
+            "temperature_c": [round(float(m["temperature_c"]), 2) for m in filtered],
+            "sigma_S_cm": [round(float(m["sigma_S_cm_mean"]), 10) for m in filtered],
+            "slice_factor": "fraction_mol_pct",
+            "slice_value": target_frac,
+        }
+
     by_t: dict[float, list[float]] = {}
     for m in measurements:
         t = float(m["temperature_c"])
@@ -289,7 +359,7 @@ def aggregate_series(measurements: list[dict[str, Any]]) -> dict[str, Any]:
     temps = sorted(by_t.keys())
     sigmas = [sum(by_t[t]) / len(by_t[t]) for t in temps]
     return {
-        "label": "Mean σ (S/cm) vs temperature (averaged over composition grid)",
+        "label": "Measured σ (S/cm) vs temperature",
         "temperature_c": [round(t, 2) for t in temps],
         "sigma_S_cm": [round(s, 10) for s in sigmas],
     }
@@ -300,19 +370,21 @@ def interpret_from_measurements(measurements: list[dict[str, Any]]) -> dict[str,
         return {"inference": "No measurements available.", "uncertainty": "n/a"}
     best = max(measurements, key=lambda m: float(m["sigma_S_cm_mean"]))
     worst_phase = min(measurements, key=lambda m: float(m["phase_proxy_mean"]))
+    primary_axis_key = "fraction_mol_pct" if "fraction_mol_pct" in best else "dwell_time_h" if "dwell_time_h" in best else "design_index"
+    primary_axis_value = best.get(primary_axis_key)
     return {
         "best_condition": {
-            "fraction_mol_pct": best["fraction_mol_pct"],
+            primary_axis_key: primary_axis_value,
             "temperature_c": best["temperature_c"],
             "sigma_S_cm_mean": best["sigma_S_cm_mean"],
         },
         "stability_risk_condition": {
-            "fraction_mol_pct": worst_phase["fraction_mol_pct"],
+            primary_axis_key: worst_phase.get(primary_axis_key),
             "temperature_c": worst_phase["temperature_c"],
             "phase_proxy_mean": worst_phase["phase_proxy_mean"],
         },
         "inference": (
-            f"Highest modeled conductivity at {best['fraction_mol_pct']} mol% and {best['temperature_c']} °C "
+            f"Highest modeled conductivity at {primary_axis_key}={primary_axis_value} and {best['temperature_c']} °C "
             f"(σ ≈ {best['sigma_S_cm_mean']} S/cm), derived from the literature-conditioned surrogate."
         ),
         "uncertainty": (
@@ -329,16 +401,23 @@ def recommend_next_from_measurements(measurements: list[dict[str, Any]], fp: dic
             "risk_level": 0.6,
         }
     best = max(measurements, key=lambda m: float(m["sigma_S_cm_mean"]))
-    bf = float(best["fraction_mol_pct"])
-    span = 0.6 + fp["mean_similarity"] * 0.4
-    lo, hi = max(0.05, bf - span), bf + span
+    if "fraction_mol_pct" in best:
+        primary_axis = "fraction_mol_pct"
+        bf = float(best["fraction_mol_pct"])
+        span = 0.6 + fp["mean_similarity"] * 0.4
+        lo, hi = max(0.05, bf - span), bf + span
+        axis_note = f"Refine composition near {bf:.2f} mol% (suggested window {lo:.2f}–{hi:.2f} mol%)"
+    else:
+        primary_axis = "dwell_time_h"
+        bf = float(best.get("dwell_time_h", 4.0))
+        span = 1.0 + fp["mean_similarity"] * 1.5
+        lo, hi = max(0.5, bf - span), bf + span
+        axis_note = f"Refine dwell time near {bf:.2f} h (suggested window {lo:.2f}–{hi:.2f} h)"
     eigs = min(0.98, 0.55 + fp["mean_relevance"] * 0.35)
     risk = max(0.08, 0.45 - fp["mean_relevance"] * 0.25)
     return {
-        "recommendation": (
-            f"Refine composition near {bf:.2f} mol% (suggested window {lo:.2f}–{hi:.2f} mol%) "
-            f"with extra temperature points around {best['temperature_c']} °C."
-        ),
+        "recommendation": f"{axis_note} with extra temperature points around {best['temperature_c']} °C.",
+        "primary_axis": primary_axis,
         "expected_information_gain": round(eigs, 3),
         "risk_level": round(risk, 3),
         "anchor_study_dois": [r.get("doi") for r in fp.get("study_refs", []) if r.get("doi")][:3],
@@ -396,6 +475,10 @@ def value_scores_from_context(
 
 
 def protocol_from_design(run: RunRecord, design: list[dict[str, Any]]) -> dict[str, Any]:
+    if design:
+        axis_keys = [k for k in design[0].keys() if k not in {"design_index"}]
+    else:
+        axis_keys = ["temperature_c"]
     return {
         "protocol_id": f"P-{run.run_id}",
         "steps": [
@@ -408,7 +491,7 @@ def protocol_from_design(run: RunRecord, design: list[dict[str, Any]]) -> dict[s
         ],
         "design_space": {
             "n_points": len(design),
-            "axes": ["fraction_mol_pct", "temperature_c"],
+            "axes": axis_keys,
         },
     }
 
@@ -452,14 +535,20 @@ def recovery_payload(measurements: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def validation_payload(measurements: list[dict[str, Any]]) -> dict[str, Any]:
+    has_fraction = any("fraction_mol_pct" in m for m in measurements)
+    has_dwell = any("dwell_time_h" in m for m in measurements)
+    mapped = {
+        "temperature_c": "temperature",
+        "sigma_S_cm_mean": "conductivity",
+        "phase_proxy_mean": "phase_quality_proxy",
+    }
+    if has_fraction:
+        mapped["fraction_mol_pct"] = "composition_fraction"
+    if has_dwell:
+        mapped["dwell_time_h"] = "dwell_time"
     return {
         "validation_status": "repaired" if measurements else "skipped",
-        "mapped_columns": {
-            "fraction_mol_pct": "composition_fraction",
-            "temperature_c": "temperature",
-            "sigma_S_cm_mean": "conductivity",
-            "phase_proxy_mean": "phase_quality_proxy",
-        },
+        "mapped_columns": mapped,
         "validated_records": len(measurements),
     }
 
@@ -470,6 +559,10 @@ def report_payload(run: RunRecord, measurements: list[dict[str, Any]], interp: d
     return {
         "title": "HelixLabs experiment report (literature-conditioned simulation)",
         "summary": interp.get("inference", ""),
+        "scope_note": (
+            "Evidence-conditioned simulation for planning support; not a protocol-faithful replication "
+            "of any individual source study."
+        ),
         "run_id": run.run_id,
         "source_studies": dois,
         "n_measurements": len(measurements),
