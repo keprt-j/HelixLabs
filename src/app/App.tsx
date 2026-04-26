@@ -3,7 +3,6 @@ import {
   advanceRun,
   approveRun,
   createRun,
-  fetchReportRun,
   fetchRun,
   replanRun,
   selectHypothesis,
@@ -72,6 +71,74 @@ type SectionTabMap = {
   runtime: RuntimeTab;
   outcomes: OutcomesTab;
 };
+type ExportSubject = "hypothesis" | "experiment" | "results";
+type ExportFormat = "json" | "pdf";
+
+function linesFromValue(value: unknown, indent = 0): string[] {
+  const pad = " ".repeat(indent);
+  if (value == null) return [`${pad}-`];
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return [`${pad}${String(value)}`];
+  if (Array.isArray(value)) {
+    if (value.length === 0) return [`${pad}(none)`];
+    return value.flatMap((item) => {
+      if (typeof item === "string" || typeof item === "number" || typeof item === "boolean") {
+        return [`${pad}- ${String(item)}`];
+      }
+      return [`${pad}-`, ...linesFromValue(item, indent + 2)];
+    });
+  }
+  const rec = asRecord(value);
+  if (!rec) return [`${pad}${String(value)}`];
+  const keys = Object.keys(rec);
+  if (keys.length === 0) return [`${pad}(none)`];
+  return keys.flatMap((key) => {
+    const v = rec[key];
+    if (v == null || typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+      return [`${pad}${key}: ${String(v ?? "-")}`];
+    }
+    if (Array.isArray(v)) {
+      const arrayLines = linesFromValue(v, indent + 2);
+      return [`${pad}${key}:`, ...arrayLines];
+    }
+    return [`${pad}${key}:`, ...linesFromValue(v, indent + 2)];
+  });
+}
+
+function downloadJson(payload: Record<string, unknown>, filename: string): void {
+  const text = JSON.stringify(payload, null, 2);
+  const blob = new Blob([text], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadPdf(payload: Record<string, unknown>, title: string, filename: string): Promise<void> {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 42;
+  let y = margin;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text(title, margin, y);
+  y += 20;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  const lines = doc.splitTextToSize(linesFromValue(payload).join("\n"), pageWidth - margin * 2);
+  for (const line of lines) {
+    if (y > pageHeight - margin) {
+      doc.addPage();
+      y = margin;
+    }
+    doc.text(line, margin, y);
+    y += 13;
+  }
+  doc.save(filename);
+}
 
 export default function App() {
   const [stage, setStage] = useState<AppStage>("homepage");
@@ -135,27 +202,87 @@ export default function App() {
     }
   }, [runId]);
 
-  const handleExportReport = useCallback(async () => {
-    if (!runId) return;
+  const handleExportSelection = useCallback(async (subject: ExportSubject, format: ExportFormat) => {
+    if (!runId || !run) return;
     setActionBusy(true);
     setRunError(null);
     try {
-      let reportBody: unknown = run?.artifacts?.report;
-      if (reportBody == null) {
-        const r = await fetchReportRun(runId);
-        reportBody = r.artifacts?.report ?? r;
-        setRun(r);
+      const base = {
+        run_id: run.run_id,
+        user_goal: run.user_goal,
+        state: run.state,
+        exported_at: new Date().toISOString(),
+      };
+      const claimGraph = asRecord(run.artifacts?.claim_graph) || {};
+      const experimentBundle = asRecord(run.artifacts?.experiment_ir) || {};
+      const experimentIr = asRecord(experimentBundle.experiment_ir) || {};
+      const executionLog = asRecord(run.artifacts?.execution_log) || {};
+      const normalizedResults = asRecord(run.artifacts?.normalized_results) || {};
+      const report = asRecord(run.artifacts?.report) || {};
+      let payload: Record<string, unknown>;
+      if (subject === "hypothesis") {
+        payload = {
+          ...base,
+          panel: "Claim Graph",
+          main_claim: claimGraph.display_main_claim ?? claimGraph.main_claim ?? "",
+          weakest_claim: claimGraph.display_weakest_claim ?? claimGraph.weakest_claim ?? "",
+          next_target: claimGraph.display_next_target ?? claimGraph.next_target ?? "",
+          selected_hypothesis_id: claimGraph.selected_hypothesis_id ?? null,
+          selected_reason: claimGraph.selected_hypothesis_reason ?? null,
+          hypotheses: Array.isArray(claimGraph.display_hypotheses)
+            ? claimGraph.display_hypotheses
+            : Array.isArray(claimGraph.hypotheses)
+              ? claimGraph.hypotheses
+              : [],
+          context: asRecord(claimGraph.context) || {},
+          literature_signals: {
+            source: run.pipeline.intake?.literature?.source ?? null,
+            evidence_manifest: run.pipeline.intake?.literature?.evidence_manifest ?? null,
+            claim_evidence: run.pipeline.intake?.literature?.claim_evidence ?? null,
+          },
+        };
+      } else if (subject === "experiment") {
+        payload = {
+          ...base,
+          panel: "Experiment Compiler + Schedule",
+          plugin: asRecord(experimentBundle.plugin) || {},
+          target_claim: experimentBundle.target_claim ?? null,
+          factors: Array.isArray(experimentIr.factors) ? experimentIr.factors : [],
+          responses: Array.isArray(experimentIr.responses) ? experimentIr.responses : [],
+          constraints: Array.isArray(experimentIr.constraints) ? experimentIr.constraints : [],
+          design: asRecord(experimentIr.design) || {},
+          procedure_steps: Array.isArray(experimentIr.procedure_steps) ? experimentIr.procedure_steps : [],
+          analysis_plan: asRecord(experimentIr.analysis_plan) || {},
+          design_matrix: Array.isArray(experimentBundle.design_matrix) ? experimentBundle.design_matrix : [],
+          feasibility_report: asRecord(run.artifacts?.feasibility_report) || {},
+          value_score: asRecord(run.artifacts?.value_score) || {},
+          protocol: asRecord(run.artifacts?.protocol) || {},
+          schedule: asRecord(run.artifacts?.schedule) || {},
+          simulation_overrides: asRecord(run.artifacts?.simulation_overrides) || {},
+        };
+      } else {
+        payload = {
+          ...base,
+          panel: "Results",
+          interpretation_summary: asRecord(run.artifacts?.interpretation)?.inference ?? null,
+          chart_series: Array.isArray(executionLog.series_for_charts) ? executionLog.series_for_charts : [],
+          measurements: Array.isArray(executionLog.measurements) ? executionLog.measurements : [],
+          procedure_trace: Array.isArray(normalizedResults.procedure_trace) ? normalizedResults.procedure_trace : [],
+          observations: Array.isArray(normalizedResults.observations) ? normalizedResults.observations : [],
+          validation_report: asRecord(run.artifacts?.validation_report) || {},
+          interpretation: asRecord(run.artifacts?.interpretation) || {},
+          normalized_results: normalizedResults,
+          report,
+        };
       }
-      const text = JSON.stringify(reportBody, null, 2);
-      const blob = new Blob([text], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `helixlabs-report-${runId}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const baseName = `helixlabs-${subject}-${runId}`;
+      if (format === "json") {
+        downloadJson(payload, `${baseName}.json`);
+      } else {
+        await downloadPdf(payload, `HelixLabs ${subject} export`, `${baseName}.pdf`);
+      }
     } catch (e) {
-      setRunError(e instanceof Error ? e.message : "Export failed");
+      setRunError(e instanceof Error ? e.message : "Export failed.");
     } finally {
       setActionBusy(false);
     }
@@ -599,7 +726,7 @@ export default function App() {
         onHomeClick={() => setStage("homepage")}
         onAdvance={canAdvance ? handleAdvance : undefined}
         onApprove={runId ? handleApprove : undefined}
-        onExportReport={runId && canExport ? handleExportReport : undefined}
+        onExportSelection={runId && canExport ? handleExportSelection : undefined}
         onExportDemo={run ? handleExportDemo : undefined}
         onDemoWalkthrough={canAdvance || showApprove ? handleDemoWalkthrough : undefined}
         showApprove={showApprove}

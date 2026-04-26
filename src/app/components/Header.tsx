@@ -1,5 +1,6 @@
-import { Download, Home, Play, ShieldCheck } from "lucide-react";
+import { ChevronDown, Download, Home, Play, ShieldCheck } from "lucide-react";
 import { motion } from "motion/react";
+import { useMemo, useState } from "react";
 
 interface HeaderProps {
   runId: string;
@@ -9,7 +10,7 @@ interface HeaderProps {
   onHomeClick?: () => void;
   onAdvance?: () => void;
   onApprove?: () => void;
-  onExportReport?: () => void;
+  onExportSelection?: (subject: "hypothesis" | "experiment" | "results", format: "json" | "pdf") => void;
   onExportDemo?: () => void;
   onDemoWalkthrough?: () => void;
   showApprove?: boolean;
@@ -24,12 +25,13 @@ export function Header({
   onHomeClick,
   onAdvance,
   onApprove,
-  onExportReport,
+  onExportSelection,
   onExportDemo,
   onDemoWalkthrough,
   showApprove,
   actionBusy,
 }: HeaderProps) {
+  const [exportOpen, setExportOpen] = useState(false);
   const statusColors = {
     Draft: "bg-slate-500",
     Scheduled: "bg-teal-600",
@@ -37,6 +39,14 @@ export function Header({
     Failed: "bg-red-600",
     Completed: "bg-emerald-600",
   };
+  const exportGroups = useMemo(
+    () => [
+      { id: "hypothesis", label: "Hypothesis" },
+      { id: "experiment", label: "Experiment" },
+      { id: "results", label: "Results" },
+    ],
+    [],
+  );
 
   return (
     <header className="h-16 border-b border-amber-200 bg-yellow-50/50 flex items-center justify-between px-6 shadow-sm">
@@ -146,17 +156,57 @@ export function Header({
           </button>
         )}
 
-        {onExportReport && (
-          <button
-            type="button"
-            disabled={actionBusy}
-            onClick={onExportReport}
-            title="Export Report"
-            aria-label="Export Report"
-            className="w-9 h-9 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white rounded flex items-center justify-center transition-colors"
-          >
-            <Download className="w-4 h-4" />
-          </button>
+        {onExportSelection && (
+          <div className="relative">
+            <button
+              type="button"
+              disabled={actionBusy}
+              onClick={() => setExportOpen((v) => !v)}
+              title="Export"
+              aria-label="Export"
+              className="h-9 px-3 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white rounded flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              <span className="text-xs font-medium">Export</span>
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+            {exportOpen && (
+              <div className="absolute right-0 mt-2 w-64 rounded-md border border-amber-200 bg-white shadow-lg z-20 p-2">
+                <div className="text-[11px] font-mono text-stone-500 px-2 pb-1">Export Format</div>
+                <div className="space-y-2">
+                  {exportGroups.map((group) => (
+                    <div key={group.id} className="rounded border border-amber-100 bg-amber-50/30 p-2">
+                      <div className="text-xs text-stone-700 mb-1">{group.label}</div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={actionBusy}
+                          className="flex-1 text-xs rounded bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white px-2 py-1"
+                          onClick={() => {
+                            onExportSelection(group.id as "hypothesis" | "experiment" | "results", "json");
+                            setExportOpen(false);
+                          }}
+                        >
+                          JSON
+                        </button>
+                        <button
+                          type="button"
+                          disabled={actionBusy}
+                          className="flex-1 text-xs rounded bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white px-2 py-1"
+                          onClick={() => {
+                            onExportSelection(group.id as "hypothesis" | "experiment" | "results", "pdf");
+                            setExportOpen(false);
+                          }}
+                        >
+                          PDF
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
         {onExportDemo && (
           <button
